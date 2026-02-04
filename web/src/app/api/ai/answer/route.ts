@@ -28,6 +28,12 @@ export async function POST(req: Request) {
     Not: [Varsa kısa not]
   `;
 
+    if (!geminiModel) {
+        return NextResponse.json({
+            error: "AI özelliği yapılandırılmamış. Lütfen GEMINI_API_KEY ekleyin."
+        }, { status: 503 });
+    }
+
     try {
         const result = await geminiModel.generateContent(prompt);
         const responseText = result.response.text();

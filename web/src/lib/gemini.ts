@@ -2,10 +2,13 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY;
 
-if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY environment variable");
+let geminiModel: any = null;
+
+if (apiKey) {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+} else {
+    console.warn("GEMINI_API_KEY not configured. AI fallback feature will be disabled.");
 }
 
-const genAI = new GoogleGenerativeAI(apiKey);
-
-export const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+export { geminiModel };
