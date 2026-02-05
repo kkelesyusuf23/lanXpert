@@ -46,36 +46,26 @@ export async function incrementUsage(userId: string, type: 'questions' | 'articl
 
     const column = type === 'questions' ? 'questions_asked' : 'articles_written';
 
-    // Upsert usage log
-    const { error } = await supabase.rpc('increment_usage', {
-        target_user_id: userId,
-        target_date: today,
-        usage_type: column
-    });
+    // Manual upsert implementation
+    const { data: usage } = await supabase
+        .from('usage_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .single();
 
-    // Note: We'll need to create this RPC in Supabase SQL editor.
-    if (error) {
-        // Fallback to manual update if RPC fails (first time setup)
-        const { data: usage } = await supabase
+    if (usage) {
+        await supabase
             .from('usage_logs')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('date', today)
-            .single();
-
-        if (usage) {
-            await supabase
-                .from('usage_logs')
-                .update({ [column]: (usage[column] || 0) + 1 })
-                .eq('log_id', usage.log_id);
-        } else {
-            await supabase
-                .from('usage_logs')
-                .insert({
-                    user_id: userId,
-                    date: today,
-                    [column]: 1
-                });
-        }
+            .update({ [column]: (usage[column] || 0) + 1 })
+            .eq('log_id', usage.log_id);
+    } else {
+        await supabase
+            .from('usage_logs')
+            .insert({
+                user_id: userId,
+                date: today,
+                [column]: 1
+            });
     }
 }

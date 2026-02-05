@@ -7,12 +7,13 @@ interface Question {
     source_language: string;
     target_language: string;
     usage_type: string;
+    difficulty_level: string;
     created_at: string;
-    asked_by_user: {
+    users: {
         username: string;
         email: string;
     };
-    answers_count?: number;
+    answers?: { count: number }[];
 }
 
 export function QuestionFeed({ questions }: { questions: any[] }) {

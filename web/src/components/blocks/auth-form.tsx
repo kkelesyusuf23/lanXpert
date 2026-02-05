@@ -44,7 +44,6 @@ export function AuthForm({ mode }: AuthFormProps) {
       }
     } catch (err: any) {
       setError(err.message || "An error occurred during authentication.");
-    } finally {
       setLoading(false);
     }
   };
