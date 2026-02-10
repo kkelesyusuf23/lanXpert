@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { PenTool, Plus, Search, BookOpen, Clock, Heart, Share2, Globe, Loader2, Trash2 } from "lucide-react";
+import { PenTool, Plus, Search, BookOpen, Clock, Heart, Share2, Globe, Loader2, Trash2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,13 @@ export default function ArticlesPage() {
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const { register, handleSubmit, reset, setValue, watch } = useForm();
+    const { register, handleSubmit, reset, setValue, watch } = useForm({
+        defaultValues: {
+            title: "",
+            content: "",
+            language_id: LANGUAGES[0].id
+        }
+    });
     const contentValue = watch("content"); // Watch for custom editor
 
     const fetchUser = async () => {
@@ -112,6 +118,32 @@ export default function ArticlesPage() {
         });
     };
 
+    const toggleSave = async (article: any, e?: any) => {
+        if (e) e.stopPropagation();
+        try {
+            // Optimistic update
+            const newStatus = !article.is_saved;
+            setArticles(prev => prev.map(a =>
+                a.id === article.id ? { ...a, is_saved: newStatus } : a
+            ));
+            if (selectedArticle?.id === article.id) {
+                setSelectedArticle({ ...selectedArticle, is_saved: newStatus });
+            }
+
+            const res = await api.post(`/features/save/article/${article.id}`);
+            const confirmedStatus = res.data.is_saved;
+
+            // Reconcile if different
+            if (confirmedStatus !== newStatus) {
+                setArticles(prev => prev.map(a =>
+                    a.id === article.id ? { ...a, is_saved: confirmedStatus } : a
+                ));
+            }
+        } catch (error) {
+            console.error("Failed to toggle save", error);
+        }
+    };
+
     const calculateReadTime = (text: string) => {
         const words = text?.split(" ").length || 0;
         const minutes = Math.ceil(words / 200);
@@ -121,6 +153,23 @@ export default function ArticlesPage() {
     useEffect(() => {
         fetchUser();
     }, []);
+
+    useEffect(() => {
+        if (selectedArticle && currentUser) {
+            // Mark as read (increment daily goal)
+            // Fire and forget, or simple async
+            const trackRead = async () => {
+                try {
+                    await api.post(`/articles/${selectedArticle.id}/read`);
+                    console.log("Article marked as read");
+                } catch (e) {
+                    // Fail silently, not critical for user experience
+                    console.error("Failed to mark article read", e);
+                }
+            };
+            trackRead();
+        }
+    }, [selectedArticle, currentUser]);
 
     useEffect(() => {
         if (currentUser || activeTab === "all") {
@@ -176,8 +225,17 @@ export default function ArticlesPage() {
                                 reset();
                                 setIsEditing(false);
                                 setEditingId(null);
-                            } catch (error) {
-                                console.error("Failed to save article:", error);
+                            } catch (error: any) {
+                                if (error.response?.status === 403) {
+                                    // Limit error - handled gracefully
+                                    const errorMsg = error.response?.data?.detail || "You have reached your limit.";
+                                    // Using alert as requested, but without error log
+                                    alert(errorMsg);
+                                } else {
+                                    console.error("Failed to save article:", error);
+                                    const errorMsg = error.response?.data?.detail || "Failed to save article. Please try again.";
+                                    alert(errorMsg);
+                                }
                             }
                         })} className="grid gap-4 py-4">
                             {/* ... Form ... */}
@@ -321,6 +379,10 @@ export default function ArticlesPage() {
                                 >
                                     <Share2 className="w-4 h-4 mr-1" /> Share
                                 </Button>
+
+                                <Button size="icon" variant="ghost" className="h-6 w-6 text-gray-400 hover:text-orange-400 p-0" onClick={(e) => toggleSave(article, e)}>
+                                    <Bookmark className={`w-4 h-4 ${article.is_saved ? "fill-orange-400 text-orange-400" : ""}`} />
+                                </Button>
                             </CardFooter>
                         </Card>
                     ))}
@@ -365,6 +427,14 @@ export default function ArticlesPage() {
                                         onClick={() => selectedArticle && handleShare(selectedArticle)}
                                     >
                                         <Share2 className="w-4 h-4 mr-2" /> Share
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className={`border-white/10 hover:bg-white/5 ${selectedArticle?.is_saved ? 'text-orange-500 border-orange-900/50 bg-orange-900/10' : 'text-gray-400 hover:text-white'}`}
+                                        onClick={() => selectedArticle && toggleSave(selectedArticle)}
+                                    >
+                                        <Bookmark className={`w-4 h-4 mr-2 ${selectedArticle?.is_saved ? 'fill-current' : ''}`} /> {selectedArticle?.is_saved ? 'Saved' : 'Save'}
                                     </Button>
                                 </div>
                                 <Button variant="ghost" onClick={() => setSelectedArticle(null)} className="text-gray-400">Close</Button>

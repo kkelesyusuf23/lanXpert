@@ -10,7 +10,8 @@ import {
     PenTool,
     Users,
     Settings,
-    LogOut
+    LogOut,
+    Bookmark
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const menuItems = [
     { name: "Q&A", href: "/dashboard/questions", icon: Users },
     { name: "Articles", href: "/dashboard/articles", icon: PenTool },
     { name: "Goals", href: "/dashboard/goals", icon: Target },
+    { name: "Saved", href: "/dashboard/saved", icon: Bookmark },
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 

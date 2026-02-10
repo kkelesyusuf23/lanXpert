@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth, users, features, stats
+from .routers import auth, users, features, stats, admin
 
 app = FastAPI(title="LanXpert API")
 
-origins = ["*"]
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,7 +26,9 @@ app.include_router(features.router_questions, prefix=api_v1_prefix)
 app.include_router(features.router_answers, prefix=api_v1_prefix)
 app.include_router(features.router_articles, prefix=api_v1_prefix)
 app.include_router(features.router_notifications, prefix=api_v1_prefix)
+app.include_router(features.router_features, prefix=api_v1_prefix)
 app.include_router(stats.router_stats, prefix=api_v1_prefix)
+app.include_router(admin.router, prefix=api_v1_prefix)
 
 @app.get("/")
 def read_root():

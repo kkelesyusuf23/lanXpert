@@ -24,14 +24,33 @@ export default function VocabularyPage() {
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const { register, handleSubmit, reset, setValue } = useForm();
 
-    const fetchRandomWord = async () => {
+    const fetchRandomWord = async (forceNew = false) => {
         setIsLoading(true);
         setIsRevealed(false);
         setError("");
         setLimitReached(false);
+
+        // Check Local Storage first if not forced
+        if (!forceNew) {
+            const savedWord = localStorage.getItem("currentWord");
+            if (savedWord) {
+                try {
+                    const parsed = JSON.parse(savedWord);
+                    // Check if it's from today? Maybe not needed for "refresh" persistence request.
+                    // Just basic persistence for now.
+                    setCurrentWord(parsed);
+                    setIsLoading(false);
+                    return;
+                } catch (e) {
+                    localStorage.removeItem("currentWord");
+                }
+            }
+        }
+
         try {
             const response = await api.get("/words/random");
             setCurrentWord(response.data);
+            localStorage.setItem("currentWord", JSON.stringify(response.data));
         } catch (err: any) {
             if (err.response?.status === 403) {
                 setLimitReached(true);
@@ -46,7 +65,8 @@ export default function VocabularyPage() {
     };
 
     useEffect(() => {
-        fetchRandomWord();
+        // Initial load: don't force new, try storage
+        fetchRandomWord(false);
     }, []);
 
     const onAddSubmit = async (data: any) => {
@@ -70,63 +90,7 @@ export default function VocabularyPage() {
         <div className="flex flex-col items-center justify-center min-h-[80vh] space-y-8 relative">
 
             <div className="absolute top-0 right-0">
-                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-gray-500 hover:text-white">Admin: Add Word</Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-zinc-900 border-white/10 text-white">
-                        <DialogHeader>
-                            <DialogTitle>Add New Word</DialogTitle>
-                        </DialogHeader>
-                        <form onSubmit={handleSubmit(onAddSubmit)} className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label>Word (Target Language)</Label>
-                                <Input {...register("word", { required: true })} className="bg-white/5 border-white/10" placeholder="e.g. Apple" />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label>Meaning (Native Language)</Label>
-                                <Input {...register("meaning", { required: true })} className="bg-white/5 border-white/10" placeholder="e.g. Elma" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>Part of Speech</Label>
-                                    <Select onValueChange={(v) => setValue("part_of_speech", v)}>
-                                        <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="noun">Noun</SelectItem>
-                                            <SelectItem value="verb">Verb</SelectItem>
-                                            <SelectItem value="adjective">Adjective</SelectItem>
-                                            <SelectItem value="adverb">Adverb</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label>Level</Label>
-                                    <Select onValueChange={(v) => setValue("level", v)}>
-                                        <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="A1">A1</SelectItem>
-                                            <SelectItem value="A2">A2</SelectItem>
-                                            <SelectItem value="B1">B1</SelectItem>
-                                            <SelectItem value="B2">B2</SelectItem>
-                                            <SelectItem value="C1">C1</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                            <div className="grid gap-2">
-                                <Label>Language</Label>
-                                <Select onValueChange={(v) => setValue("language_id", v)} defaultValue={LANGUAGES[0].id}>
-                                    <SelectTrigger className="bg-white/5 border-white/10"><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                        {LANGUAGES.map(l => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <Button type="submit" className="bg-purple-600 hover:bg-purple-700">Save Word</Button>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                {/* Admin button removed - moved to dedicated Admin Panel */}
             </div>
 
             {isLoading ? (
@@ -195,7 +159,7 @@ export default function VocabularyPage() {
 
                     <div className="flex gap-4">
                         <Button
-                            onClick={fetchRandomWord}
+                            onClick={() => fetchRandomWord(true)}
                             className="h-12 px-8 bg-white text-black hover:bg-gray-200 font-bold rounded-full flex items-center gap-2 transition-transform active:scale-95"
                         >
                             Next Word <ArrowRight className="w-5 h-5" />

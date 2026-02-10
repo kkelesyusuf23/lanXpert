@@ -58,6 +58,8 @@ class User(Base):
     notification_settings = relationship("NotificationSetting", uselist=False, back_populates="user")
     roles = relationship("UserRole", back_populates="user")
     daily_limits = relationship("UserDailyLimit", back_populates="user")
+    
+    saved_content = relationship("UserSavedContent", back_populates="user")
 
 class UserRole(Base):
     __tablename__ = "user_roles"
@@ -124,7 +126,8 @@ class Word(Base):
     __tablename__ = "words"
     
     id = Column(String, primary_key=True, default=generate_uuid)
-    language_id = Column(String, ForeignKey("languages.id"))
+    language_id = Column(String, ForeignKey("languages.id")) # Native Language
+    target_language_id = Column(String, ForeignKey("languages.id"), nullable=True) # Target Language
     word = Column(String)
     meaning = Column(Text)
     part_of_speech = Column(String) # noun, verb, adj
@@ -175,6 +178,30 @@ class Answer(Base):
     user = relationship("User", back_populates="answers")
     votes = relationship("AnswerVote", back_populates="answer")
     reports = relationship("AnswerReport", back_populates="answer")
+    helpful_marks = relationship("AnswerHelpful", back_populates="answer")
+    
+    # New Fields
+    helpful_count = Column(Integer, default=0)
+    context_tags = Column(String, nullable=True) # JSON string or comma-separated tags: "Daily,Business,Slang"
+
+class UserSavedContent(Base):
+    __tablename__ = "user_saved_content"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"))
+    content_type = Column(String) # 'question', 'article', 'translation'
+    content_id = Column(String) # ID of the question or article
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User", back_populates="saved_content")
+
+class AnswerHelpful(Base):
+    __tablename__ = "answer_helpful"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    answer_id = Column(String, ForeignKey("answers.id"))
+    user_id = Column(String, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    answer = relationship("Answer", back_populates="helpful_marks")
 
 class AnswerVote(Base):
     __tablename__ = "answer_votes"

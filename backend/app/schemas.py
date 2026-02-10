@@ -25,7 +25,21 @@ class UserOut(UserBase):
     native_language_id: Optional[str]
     target_language_id: Optional[str]
     email_verified: bool
+    roles: List["UserRoleOut"] = []
 
+    class Config:
+        from_attributes = True
+
+class RoleBase(BaseModel):
+    name: str
+
+class RoleOut(RoleBase):
+    id: str
+    class Config:
+        from_attributes = True
+
+class UserRoleOut(BaseModel):
+    role: RoleOut
     class Config:
         from_attributes = True
 
@@ -44,7 +58,8 @@ class WordBase(BaseModel):
     meaning: str
     part_of_speech: Optional[str] = None
     level: str
-    language_id: str
+    language_id: str # Native Language
+    target_language_id: Optional[str] = None # Target Language
 
 class WordCreate(WordBase):
     pass
@@ -52,25 +67,6 @@ class WordCreate(WordBase):
 class WordOut(WordBase):
     id: str
     is_active: bool
-    class Config:
-        from_attributes = True
-
-class QuestionBase(BaseModel):
-    question_text: str
-    description: Optional[str] = None
-    source_language_id: str
-    target_language_id: str
-
-class QuestionCreate(QuestionBase):
-    pass
-
-class QuestionOut(QuestionBase):
-    id: str
-    user_id: str
-    created_at: datetime
-    user: Optional[UserOut] = None
-    answers: List['AnswerOut'] = [] # Nested answers would be nice too
-    
     class Config:
         from_attributes = True
 
@@ -83,9 +79,34 @@ class AnswerCreate(AnswerBase):
 
 class AnswerOut(AnswerBase):
     id: str
-    user_id: str
-    created_at: datetime
+    user_id: Optional[str] = None
+    created_at: Optional[datetime] = None
     user: Optional[UserOut] = None
+    
+    helpful_count: Optional[int] = 0
+    is_helpful: bool = False # For current user
+    context_tags: Optional[str] = None # "comma,separated"
+    
+    class Config:
+        from_attributes = True
+
+class QuestionBase(BaseModel):
+    question_text: str
+    description: Optional[str] = None
+    source_language_id: Optional[str] = None # Native
+    target_language_id: Optional[str] = None # Target
+
+class QuestionCreate(QuestionBase):
+    pass
+
+class QuestionOut(QuestionBase):
+    id: str
+    user_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+    user: Optional[UserOut] = None
+    answers: List[AnswerOut] = [] # Nested answers
+    
+    is_saved: bool = False # Current user saved?
     
     class Config:
         from_attributes = True
@@ -100,11 +121,12 @@ class ArticleCreate(ArticleBase):
 
 class ArticleOut(ArticleBase):
     id: str
-    user_id: str
+    user_id: Optional[str] = None
     created_at: datetime
     user: Optional[UserOut] = None
     like_count: int = 0
     is_liked: bool = False
+    is_saved: bool = False
     
     class Config:
         from_attributes = True
@@ -120,6 +142,9 @@ class WordUpdate(BaseModel):
 class QuestionUpdate(BaseModel):
     question_text: Optional[str] = None
     description: Optional[str] = None
+    
+class AnswerCreate(AnswerBase):
+    context_tags: Optional[str] = None
 
 class AnswerUpdate(BaseModel):
     answer_text: Optional[str] = None
@@ -153,4 +178,29 @@ class NotificationOut(NotificationBase):
 
 class NotificationUpdate(BaseModel):
     is_read: bool = True
+
+class SavedContentOut(BaseModel):
+    id: str
+    content_type: str
+    content_id: str
+    created_at: datetime
+    # Generic payload for frontend details (title, text, user, etc.)
+    details: Optional[dict] = None 
+    
+    class Config:
+        from_attributes = True
+
+class WeeklyChampion(BaseModel):
+    user: UserOut
+    accepted_count: int
+    score: int
+    
+    class Config:
+        from_attributes = True
+
+# Pydantic v2 / v1 compatibility for forward refs
+try:
+    UserOut.model_rebuild()
+except AttributeError:
+    UserOut.update_forward_refs()
 

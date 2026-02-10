@@ -1,9 +1,9 @@
-from backend.app.patterns.mediator import IRequest, IRequestHandler
-from backend.app.patterns.validation import AbstractValidator, ValidationException, ValidationFailure
-from backend.app.models import User
-from backend.app.schemas import UserCreate, UserOut
-from backend.app.database import get_db
-from backend.app.auth import get_password_hash
+from app.patterns.mediator import IRequest, IRequestHandler
+from app.patterns.validation import AbstractValidator, ValidationFailure
+from app.models import User
+from app.schemas import UserCreate, UserOut
+from app.database import get_db
+from app.auth import get_password_hash
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 

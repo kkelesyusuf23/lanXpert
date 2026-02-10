@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MessageCircle, Plus, Search, ThumbsUp, MessageSquare, MoreHorizontal, Globe, Loader2 } from "lucide-react";
+import { MessageCircle, Plus, Search, ThumbsUp, MessageSquare, MoreHorizontal, Globe, Loader2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
@@ -42,6 +42,61 @@ export default function QuestionsPage() {
     const [replyText, setReplyText] = useState("");
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
+    const toggleSave = async (question: any, e?: any) => {
+        if (e) e.stopPropagation();
+        try {
+            // Optimistic update
+            const newStatus = !question.is_saved;
+            setQuestions(prev => prev.map(q =>
+                q.id === question.id ? { ...q, is_saved: newStatus } : q
+            ));
+            if (selectedQuestion?.id === question.id) {
+                setSelectedQuestion({ ...selectedQuestion, is_saved: newStatus });
+            }
+
+            const res = await api.post(`/features/save/question/${question.id}`);
+            const confirmedStatus = res.data.is_saved;
+
+            // Reconcile if different
+            if (confirmedStatus !== newStatus) {
+                setQuestions(prev => prev.map(q =>
+                    q.id === question.id ? { ...q, is_saved: confirmedStatus } : q
+                ));
+            }
+        } catch (error) {
+            console.error("Failed to toggle save", error);
+        }
+    };
+
+    const toggleHelpful = async (answer: any) => {
+        try {
+            // Check if already helpful-ed locally (optimistic check not full proof without user_has_helped flag from backend)
+            // Assuming backend returns new count or error if duplicate. 
+            // Better: Optimistic update + api call.
+            // Current backend: Returns {status: "success"|"ignored", message}
+            // And doesn't return new count. We increment locally if success.
+
+            // However, we don't have "is_helpful" boolean on the answer object from listing (yet).
+            // Let's assume we want to just try to mark it.
+
+            const res = await api.post(`/features/helpful/${answer.id}`);
+            if (res.data.status === 'success') {
+                // Update local state
+                if (selectedQuestion) {
+                    const updatedAnswers = selectedQuestion.answers.map((a: any) =>
+                        a.id === answer.id ? { ...a, helpful_count: (a.helpful_count || 0) + 1 } : a
+                    );
+                    setSelectedQuestion({ ...selectedQuestion, answers: updatedAnswers });
+                }
+            } else {
+                // Already marked
+                // Maybe show toast? For now silent or alert?
+            }
+        } catch (error) {
+            console.error("Failed to mark helpful", error);
+        }
+    }
+
     const onReplySubmit = async (text: string) => {
         if (!selectedQuestion) return;
         setIsSubmittingReply(true);
@@ -74,7 +129,17 @@ export default function QuestionsPage() {
         }
     };
 
-    const { register, handleSubmit, reset, setValue } = useForm();
+    const { register, handleSubmit, reset, setValue, watch } = useForm({
+        defaultValues: {
+            title: "",
+            description: "",
+            source_lang: LANGUAGES[0].id,
+            target_lang: LANGUAGES[1].id
+        }
+    });
+
+    const watchedSourceLang = watch("source_lang");
+    const watchedTargetLang = watch("target_lang");
 
     const fetchUser = async () => {
         try {
@@ -145,6 +210,7 @@ export default function QuestionsPage() {
                     target_language_id: data.target_lang
                 });
             } else {
+                // Ensure description is a string
                 await api.post("/questions", {
                     question_text: data.title,
                     description: data.description,
@@ -154,7 +220,12 @@ export default function QuestionsPage() {
             }
             fetchQuestions();
             setIsDialogOpen(false);
-            reset();
+            reset({
+                title: "",
+                description: "",
+                source_lang: currentUser?.native_language_id || LANGUAGES[0].id,
+                target_lang: currentUser?.target_language_id || LANGUAGES[1].id
+            });
             setIsEditing(false);
             setEditingId(null);
         } catch (error) {
@@ -185,7 +256,16 @@ export default function QuestionsPage() {
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
-                        <Button className="bg-purple-600 hover:bg-purple-700">
+                        <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => {
+                            if (!isEditing) {
+                                reset({
+                                    title: "",
+                                    description: "",
+                                    source_lang: currentUser?.native_language_id || LANGUAGES[0].id,
+                                    target_lang: currentUser?.target_language_id || LANGUAGES[1].id
+                                });
+                            }
+                        }}>
                             <Plus className="w-4 h-4 mr-2" />
                             Ask Question
                         </Button>
@@ -203,7 +283,7 @@ export default function QuestionsPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                     <Label>Source Language</Label>
-                                    <Select onValueChange={(v) => setValue("source_lang", v)} defaultValue={LANGUAGES[0].id}>
+                                    <Select value={watchedSourceLang} onValueChange={(v) => setValue("source_lang", v)}>
                                         <SelectTrigger className="bg-white/5 border-white/10">
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
@@ -214,7 +294,7 @@ export default function QuestionsPage() {
                                 </div>
                                 <div className="grid gap-2">
                                     <Label>Target Language</Label>
-                                    <Select onValueChange={(v) => setValue("target_lang", v)} defaultValue={LANGUAGES[1].id}>
+                                    <Select value={watchedTargetLang} onValueChange={(v) => setValue("target_lang", v)}>
                                         <SelectTrigger className="bg-white/5 border-white/10">
                                             <SelectValue placeholder="Select..." />
                                         </SelectTrigger>
@@ -319,6 +399,10 @@ export default function QuestionsPage() {
                                         )}
                                         <Button variant="link" onClick={() => setSelectedQuestion(q)} className="text-purple-400 p-0 h-auto">read more</Button>
                                     </div>
+
+                                    <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-purple-400" onClick={(e) => toggleSave(q, e)}>
+                                        <Bookmark className={`w-4 h-4 ${q.is_saved ? "fill-purple-400 text-purple-400" : ""}`} />
+                                    </Button>
                                 </CardFooter>
                             </Card>
                         )))}
@@ -376,13 +460,18 @@ export default function QuestionsPage() {
                                     <div className="space-y-4">
                                         {selectedQuestion.answers?.map((ans: any) => (
                                             <div key={ans.id} className="bg-white/5 rounded-lg p-4 border border-white/5">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Avatar className="h-6 w-6">
-                                                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${ans.user?.username || 'user'}`} />
-                                                        <AvatarFallback>U</AvatarFallback>
-                                                    </Avatar>
-                                                    <span className="font-medium text-sm text-gray-300">{ans.user?.username || 'User'}</span>
-                                                    <span className="text-xs text-gray-500">• {timeAgo(ans.created_at)}</span>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Avatar className="h-6 w-6">
+                                                            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${ans.user?.username || 'user'}`} />
+                                                            <AvatarFallback>U</AvatarFallback>
+                                                        </Avatar>
+                                                        <span className="font-medium text-sm text-gray-300">{ans.user?.username || 'User'}</span>
+                                                        <span className="text-xs text-gray-500">• {timeAgo(ans.created_at)}</span>
+                                                    </div>
+                                                    <Button size="sm" variant="ghost" className="h-6 text-gray-400 hover:text-green-500 gap-1" onClick={() => toggleHelpful(ans)}>
+                                                        <ThumbsUp className="w-3 h-3" /> {ans.helpful_count || 0}
+                                                    </Button>
                                                 </div>
                                                 <p className="text-gray-200 text-sm whitespace-pre-wrap">{ans.answer_text}</p>
                                             </div>

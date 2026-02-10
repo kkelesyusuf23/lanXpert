@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
+import DailySentenceCard from "@/components/dashboard/DailySentenceCard";
+import WeeklyChampionCard from "@/components/dashboard/WeeklyChampionCard";
 
 export default function DashboardOverview() {
     const [stats, setStats] = useState<any>(null);
@@ -91,6 +93,16 @@ export default function DashboardOverview() {
                 </Card>
             </div>
 
+            {/* Feature Widgets */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <DailySentenceCard />
+                </div>
+                <div className="lg:col-span-1">
+                    <WeeklyChampionCard />
+                </div>
+            </div>
+
             {/* Main Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Recent Activity */}
@@ -107,8 +119,8 @@ export default function DashboardOverview() {
                                 activities.map((activity: any, i) => (
                                     <div key={i} className="flex items-center">
                                         <div className={`h-9 w-9 rounded-full flex items-center justify-center border mr-4 ${activity.type === 'question' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
-                                                activity.type === 'article' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
-                                                    'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                                            activity.type === 'article' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
+                                                'bg-purple-500/10 border-purple-500/20 text-purple-400'
                                             }`}>
                                             {activity.type === 'question' ? <MessageSquare className="h-5 w-5" /> :
                                                 activity.type === 'article' ? <PenTool className="h-5 w-5" /> :

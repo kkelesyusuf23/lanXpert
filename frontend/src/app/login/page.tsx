@@ -37,15 +37,26 @@ export default function LoginPage() {
                 const userRes = await api.get("/users/me");
                 const user = userRes.data;
                 if (!user.native_language_id || !user.target_language_id) {
-                    router.push("/onboarding");
+                    window.location.href = "/onboarding";
                 } else {
-                    router.push("/dashboard");
+                    window.location.href = "/dashboard";
                 }
             } catch (e) {
-                router.push("/dashboard");
+                window.location.href = "/dashboard";
             }
         } catch (err: any) {
-            setError("Invalid email or password");
+            console.error(err);
+            if (err.response) {
+                if (err.response.status === 401) {
+                    setError("Invalid email or password");
+                } else if (err.response.status >= 500) {
+                    setError("Server error. Please try again later.");
+                } else {
+                    setError(err.response.data?.detail || "Login failed");
+                }
+            } else {
+                setError("Connection error. Please check your internet connection.");
+            }
         } finally {
             setIsLoading(false);
         }
