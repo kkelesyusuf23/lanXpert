@@ -13,3 +13,22 @@ INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue
 INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
 INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 6f5e6337-07e6-4e41-8833-98cb7e8fd078
 INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 6f5e6337-07e6-4e41-8833-98cb7e8fd078
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 6f5e6337-07e6-4e41-8833-98cb7e8fd078
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 6f5e6337-07e6-4e41-8833-98cb7e8fd078
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 5438cde4-ea5f-4c88-a28e-7e0fbdd0d819
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 5438cde4-ea5f-4c88-a28e-7e0fbdd0d819
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 7ad90db3-949a-41c7-80ff-a32364e68eeb
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 3d59f9ce-a0f0-40a3-b775-502218920184
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 existing partners: set()
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 joined chat 3d59f9ce-a0f0-40a3-b775-502218920184
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue adb2aea3-03ea-4c96-add7-a2524c8c31f1
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 existing partners: set()
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 joined chat adb2aea3-03ea-4c96-add7-a2524c8c31f1
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 356fa365-c31f-481c-b869-eec63b296503
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 existing partners: set()
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 joined chat 356fa365-c31f-481c-b869-eec63b296503

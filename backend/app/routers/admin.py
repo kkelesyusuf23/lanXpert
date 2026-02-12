@@ -300,3 +300,210 @@ def reset_user_limits(user_id: str, limit_type: str = "all", db: Session = Depen
         
     db.commit()
     return {"status": "success", "message": "Limits reset"}
+
+# --- Generic Admin CRUD ---
+
+RESOURCE_MAP = {
+    "users": models.User,
+    "roles": models.Role,
+    "user_roles": models.UserRole,
+    "plans": models.Plan,
+    "user_daily_limits": models.UserDailyLimit,
+    "languages": models.Language,
+    "words": models.Word,
+    "questions": models.Question,
+    "answers": models.Answer,
+    "articles": models.Article,
+    "chats": models.Chat,
+    "messages": models.Message,
+    "user_reports": models.UserReport,
+    "notifications": models.Notification,
+    "site_settings": models.SiteSetting,
+    "content_moderation": models.ContentModeration,
+    # Additional Tables
+    "login_logs": models.LoginLog,
+    "rate_limit_logs": models.RateLimitLog,
+    "word_logs": models.WordLog,
+    "user_saved_content": models.UserSavedContent,
+    "answer_helpful": models.AnswerHelpful,
+    "answer_votes": models.AnswerVote,
+    "answer_reports": models.AnswerReport,
+    "article_likes": models.ArticleLike,
+    "chat_participants": models.ChatParticipant,
+    "blocked_users": models.BlockedUser,
+    "refresh_tokens": models.RefreshToken,
+    "admin_actions": models.AdminAction,
+}
+
+from sqlalchemy.inspection import inspect
+from sqlalchemy import desc, text
+
+@router.get("/generic/{resource}/schema")
+def get_resource_schema(resource: str, current_user: models.User = Depends(dependencies.get_current_super_admin)):
+    if resource not in RESOURCE_MAP:
+        raise HTTPException(status_code=404, detail="Resource not found")
+    
+    model = RESOURCE_MAP[resource]
+    mapper = inspect(model)
+    
+    columns = []
+    for col in mapper.columns:
+        col_type = str(col.type)
+        if "VARCHAR" in col_type or "String" in col_type or "Text" in col_type:
+            simple_type = "string"
+        elif "INTEGER" in col_type or "Integer" in col_type or "Numeric" in col_type:
+            simple_type = "number"
+        elif "BOOLEAN" in col_type or "Boolean" in col_type:
+            simple_type = "boolean"
+        elif "DATETIME" in col_type or "Date" in col_type:
+            simple_type = "date"
+        else:
+            simple_type = "string"
+            
+        columns.append({
+            "name": col.name,
+            "type": simple_type,
+            "required": not col.nullable,
+            "pk": col.primary_key,
+            "fk": bool(col.foreign_keys) 
+        })
+        
+    return {"columns": columns}
+
+@router.get("/generic/{resource}")
+def get_generic_list(
+    resource: str, 
+    skip: int = 0, 
+    limit: int = 50, 
+    sort_by: Optional[str] = None,
+    order: Optional[str] = "asc",
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_super_admin)
+):
+    if resource not in RESOURCE_MAP:
+        raise HTTPException(status_code=404, detail="Resource not found")
+        
+    model = RESOURCE_MAP[resource]
+    query = db.query(model)
+    
+    # Sorting
+    if sort_by and hasattr(model, sort_by):
+        col = getattr(model, sort_by)
+        if order == "desc":
+            query = query.order_by(desc(col))
+        else:
+            query = query.order_by(col)
+    elif hasattr(model, "created_at"):
+        query = query.order_by(desc(model.created_at))
+    elif hasattr(model, "id"):
+         # Default sort by ID if created_at doesn't exist (unless uuid, then random, but consistent)
+        pass # No clean default for random UUIDs, let db decide or add index
+        
+    items = query.offset(skip).limit(limit).all()
+    total = db.query(model).count()
+    
+    return {"items": items, "total": total}
+
+@router.get("/generic/{resource}/{id}")
+def get_generic_item(
+    resource: str, 
+    id: str, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_super_admin)
+):
+    if resource not in RESOURCE_MAP:
+        raise HTTPException(status_code=404, detail="Resource not found")
+        
+    model = RESOURCE_MAP[resource]
+    # Handle composite keys? For now assume 'id' column or generic primary key
+    # Most models have 'id'. join tables like user_roles have composite.
+    # Simple workaround: generic only supports single PK for convenience or we need filter logic.
+    # Let's filter by primary key.
+    
+    pk = inspect(model).primary_key[0]
+    item = db.query(model).filter(pk == id).first()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@router.post("/generic/{resource}")
+def create_generic_item(
+    resource: str, 
+    data: dict, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_super_admin)
+):
+    if resource not in RESOURCE_MAP:
+        raise HTTPException(status_code=404, detail="Resource not found")
+        
+    model = RESOURCE_MAP[resource]
+    try:
+        # Filter data to only include valid columns to avoid errors
+        valid_keys = {c.name for c in inspect(model).columns}
+        clean_data = {k: v for k, v in data.items() if k in valid_keys}
+        
+        new_item = model(**clean_data)
+        db.add(new_item)
+        db.commit()
+        db.refresh(new_item)
+        return new_item
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/generic/{resource}/{id}")
+def update_generic_item(
+    resource: str, 
+    id: str, 
+    data: dict, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_super_admin)
+):
+    if resource not in RESOURCE_MAP:
+        raise HTTPException(status_code=404, detail="Resource not found")
+        
+    model = RESOURCE_MAP[resource]
+    pk = inspect(model).primary_key[0]
+    item = db.query(model).filter(pk == id).first()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+        
+    try:
+        valid_keys = {c.name for c in inspect(model).columns}
+        for k, v in data.items():
+            if k in valid_keys:
+                setattr(item, k, v)
+        
+        db.commit()
+        db.refresh(item)
+        return item
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/generic/{resource}/{id}")
+def delete_generic_item(
+    resource: str, 
+    id: str, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_super_admin)
+):
+    if resource not in RESOURCE_MAP:
+        raise HTTPException(status_code=404, detail="Resource not found")
+        
+    model = RESOURCE_MAP[resource]
+    pk = inspect(model).primary_key[0]
+    item = db.query(model).filter(pk == id).first()
+    
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+        
+    try:
+        db.delete(item)
+        db.commit()
+        return {"status": "deleted"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))

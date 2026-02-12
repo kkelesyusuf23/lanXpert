@@ -22,6 +22,7 @@ const menuItems = [
     { name: "Vocabulary", href: "/admin/words", icon: BookOpen },
     { name: "Questions", href: "/admin/questions", icon: MessageCircle },
     { name: "Articles", href: "/admin/articles", icon: FileText },
+    { name: "Database", href: "/admin/database", icon: Shield, role: "admin" },
     { name: "Settings", href: "/admin/settings", icon: Settings, role: "admin" },
 ];
 

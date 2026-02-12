@@ -236,7 +236,7 @@ export default function ChatPage() {
 
                 {/* List */}
                 <ScrollArea className="flex-1">
-                    <div className="space-y-1 p-2">
+                    <div className="space-y-1 p-2 mr-3">
                         {chats.length === 0 ? (
                             <div className="text-center text-gray-500 py-10 text-sm p-4">
                                 No chats yet.<br />Start a random chat or message someone from Q&A!
@@ -246,6 +246,7 @@ export default function ChatPage() {
                                 const other = getOtherParticipant(chat);
                                 const isActive = selectedChat?.id === chat.id;
                                 const isQueue = chat.type === 'random_queue';
+                                const isTerminated = chat.type === 'terminated';
 
                                 return (
                                     <div
@@ -253,24 +254,31 @@ export default function ChatPage() {
                                         onClick={() => setSelectedChat(chat)}
                                         className={`p-3 rounded-lg cursor-pointer transition-colors flex items-center gap-3 group relative ${isActive ? 'bg-purple-600/10 border border-purple-500/20' : 'hover:bg-white/5 border border-transparent'}`}
                                     >
-                                        <Avatar className="h-10 w-10 border border-white/10">
+                                        <Avatar className="h-10 w-10 border border-white/10 shrink-0">
                                             <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${other?.username || 'user'}`} />
                                             <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
                                         </Avatar>
-                                        <div className="flex-1 min-w-0 pr-6">
+
+                                        <div className="flex-1 min-w-0">
                                             <div className="flex justify-between items-baseline mb-1">
-                                                <h3 className="font-medium text-white truncate text-sm">
-                                                    {isQueue ? "Checking Queue..." : (other?.username || "Unknown User")}
+                                                <h3 className={`font-medium truncate text-sm ${isTerminated ? 'text-red-400' : 'text-white'}`}>
+                                                    {isQueue ? "Checking Queue..." : isTerminated ? "Conversation Ended" : (other?.username || "Unknown User")}
                                                 </h3>
-                                                <span className="text-[10px] text-gray-500">{chat.last_message ? formatDistanceToNow(new Date(chat.last_message.created_at)) : ''}</span>
+                                                <span className="text-[10px] text-gray-500 shrink-0 ml-2">
+                                                    {chat.last_message ? formatDistanceToNow(new Date(chat.last_message.created_at), { addSuffix: true }).replace('about ', '').replace(' minutes', 'm').replace(' hours', 'h') : ''}
+                                                </span>
                                             </div>
-                                            <p className="text-gray-400 text-xs truncate">
-                                                {isQueue ? "Waiting for partner..." : (chat.last_message?.content || "No messages yet")}
+                                            <p className="text-gray-400 text-xs truncate pr-2">
+                                                {isQueue ? "Waiting..." : (
+                                                    (chat.last_message?.content || "No messages yet").length > 20
+                                                        ? (chat.last_message?.content || "No messages yet").substring(0, 20) + "..."
+                                                        : (chat.last_message?.content || "No messages yet")
+                                                )}
                                             </p>
                                         </div>
 
-                                        {/* Delete Option - Visible on Hover or Active */}
-                                        <div className={`absolute right-2 top-1/2 -translate-y-1/2 ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                                        {/* Delete Option - Always visible, properly spaced via flex */}
+                                        <div className="shrink-0 ml-1">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10" onClick={(e) => e.stopPropagation()}>
@@ -313,7 +321,9 @@ export default function ChatPage() {
                                 </Avatar>
                                 <div>
                                     <h3 className="font-bold text-white text-sm">
-                                        {selectedChat.type === 'random_queue' ? "Searching..." : (getOtherParticipant(selectedChat)?.username || "User")}
+                                        {selectedChat.type === 'random_queue' ? "Searching..." :
+                                            selectedChat.type === 'terminated' ? "Conversation Ended" :
+                                                (getOtherParticipant(selectedChat)?.username || "User")}
                                     </h3>
                                     {selectedChat.type === 'random' && <p className="text-[10px] text-purple-400">Random Match</p>}
                                 </div>
@@ -379,6 +389,13 @@ export default function ChatPage() {
                                     <p>Waiting for a language partner...</p>
                                 </div>
                             )}
+                            {selectedChat.type === 'terminated' && (
+                                <div className="flex flex-col items-center justify-center py-6 text-gray-500 space-y-2">
+                                    <p className="text-sm bg-red-500/10 text-red-300 px-4 py-2 rounded-full border border-red-500/20">
+                                        This conversation has ended.
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Input Area */}
@@ -386,12 +403,12 @@ export default function ChatPage() {
                             <form onSubmit={handleSendMessage} className="flex gap-2">
                                 <Input
                                     className="bg-black/50 border-white/10 text-white focus-visible:ring-purple-500"
-                                    placeholder="Type a message..."
+                                    placeholder={selectedChat.type === 'terminated' ? "Conversation ended" : "Type a message..."}
                                     value={inputText}
                                     onChange={(e) => setInputText(e.target.value)}
-                                    disabled={isSending || selectedChat.type === 'random_queue'}
+                                    disabled={isSending || selectedChat.type === 'random_queue' || selectedChat.type === 'terminated'}
                                 />
-                                <Button type="submit" size="icon" className="bg-purple-600 hover:bg-purple-700" disabled={isSending || selectedChat.type === 'random_queue'}>
+                                <Button type="submit" size="icon" className="bg-purple-600 hover:bg-purple-700" disabled={isSending || selectedChat.type === 'random_queue' || selectedChat.type === 'terminated'}>
                                     <Send className="w-4 h-4" />
                                 </Button>
                             </form>

@@ -27,7 +27,7 @@ def get_chats(
     # 2. Get Chats with participants loaded
     chats = db.query(models.Chat).filter(
         models.Chat.id.in_(user_chat_ids),
-        models.Chat.type != 'random_queue' # Don't show queue entries as active chats? Maybe show as "Searching..."
+        # models.Chat.type != 'random_queue' # Show queues so user knows they are waiting
     ).order_by(models.Chat.updated_at.desc()).offset(skip).limit(limit).options(
         joinedload(models.Chat.participants).joinedload(models.ChatParticipant.user)
     ).all()
@@ -387,9 +387,31 @@ def delete_chat(
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
         
-    # Delete chat (cascade should handle messages and participants if configured, 
-    # but SQLAlchemy relationship cascade="all, delete-orphan" handles it on python side usually)
-    db.delete(chat)
-    db.commit()
-    
-    return {"status": "chat_deleted"}
+    # Check if other participants exist
+    other_participants_count = db.query(models.ChatParticipant).filter(
+        models.ChatParticipant.chat_id == chat_id,
+        models.ChatParticipant.user_id != current_user.id
+    ).count()
+
+    if other_participants_count == 0:
+        # Only me or empty -> Hard Delete
+        db.delete(chat)
+        db.commit()
+        return {"status": "chat_deleted"}
+    else:
+        # Others present -> Leave Chat
+        # 1. Send System Message
+        msg = models.Message(
+            chat_id=chat_id,
+            content=f"{current_user.username} has left the chat. Conversation ended."
+        )
+        db.add(msg)
+        
+        # 2. Mark as terminated (so other user knows it's dead)
+        chat.type = 'terminated'
+        
+        # 3. Remove ME from participants so it disappears from my list
+        db.delete(is_part) # is_part is the ChatParticipant object for current_user
+        
+        db.commit()
+        return {"status": "chat_left"}
