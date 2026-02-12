@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, ThumbsUp, Star, Loader2, Quote } from "lucide-react";
 import api from "@/lib/api";
 import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
 
 export default function DailySentenceCard() {
     const [sentence, setSentence] = useState<any>(null);
@@ -61,8 +62,13 @@ export default function DailySentenceCard() {
                     <Badge variant="outline" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/30 mb-2">
                         Phrase of the Day
                     </Badge>
-                    <div className="flex items-center gap-1 text-xs text-indigo-300/70 bg-black/20 px-2 py-1 rounded-full">
-                        <ThumbsUp className="h-3 w-3" /> {sentence.helpful_count || 0}
+                    <div className="flex items-center gap-2">
+                        <div className="text-xs text-indigo-300/50 italic">
+                            {sentence.created_at && formatDistanceToNow(new Date(sentence.created_at), { addSuffix: true })}
+                        </div>
+                        <div className="flex items-center gap-1 text-xs text-indigo-300/70 bg-black/20 px-2 py-1 rounded-full">
+                            <ThumbsUp className="h-3 w-3" /> {sentence.helpful_count || 0}
+                        </div>
                     </div>
                 </div>
             </CardHeader>

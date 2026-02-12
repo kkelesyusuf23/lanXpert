@@ -23,6 +23,9 @@ export default function Home() {
             LanXpert
           </Link>
           <div className="flex items-center gap-4">
+            <Link href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors hidden sm:block">
+              Pricing
+            </Link>
             <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors hidden sm:block">
               Log in
             </Link>

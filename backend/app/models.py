@@ -60,6 +60,15 @@ class User(Base):
     daily_limits = relationship("UserDailyLimit", back_populates="user")
     
     saved_content = relationship("UserSavedContent", back_populates="user")
+    
+    # Chat Participation
+    chat_participations = relationship("ChatParticipant", back_populates="user")
+    
+    # Blocks (User as Blocker)
+    blocked_users = relationship("BlockedUser", foreign_keys="BlockedUser.blocker_id", back_populates="blocker")
+    
+    # Reports (User as Reporter)
+    reports_made = relationship("UserReport", foreign_keys="UserReport.reporter_id", back_populates="reporter")
 
 class UserRole(Base):
     __tablename__ = "user_roles"
@@ -307,3 +316,61 @@ class RefreshToken(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="refresh_tokens")
+
+
+# --- Chat System ---
+
+class Chat(Base):
+    __tablename__ = "chats"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    type = Column(String)  # 'direct', 'random'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    participants = relationship("ChatParticipant", back_populates="chat", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")
+
+class ChatParticipant(Base):
+    __tablename__ = "chat_participants"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    chat_id = Column(String, ForeignKey("chats.id"))
+    user_id = Column(String, ForeignKey("users.id"))
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    chat = relationship("Chat", back_populates="participants")
+    user = relationship("User", back_populates="chat_participations")
+
+class Message(Base):
+    __tablename__ = "messages"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    chat_id = Column(String, ForeignKey("chats.id"))
+    sender_id = Column(String, ForeignKey("users.id"))
+    content = Column(Text)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    chat = relationship("Chat", back_populates="messages")
+    sender = relationship("User")
+
+class BlockedUser(Base):
+    __tablename__ = "blocked_users"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    blocker_id = Column(String, ForeignKey("users.id"))
+    blocked_id = Column(String, ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    blocker = relationship("User", foreign_keys=[blocker_id], back_populates="blocked_users")
+    blocked = relationship("User", foreign_keys=[blocked_id])
+
+class UserReport(Base):
+    __tablename__ = "user_reports"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    reporter_id = Column(String, ForeignKey("users.id"))
+    reported_id = Column(String, ForeignKey("users.id"))
+    reason = Column(String) # spam, harassment, etc.
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    reporter = relationship("User", foreign_keys=[reporter_id], back_populates="reports_made")
+    reported = relationship("User", foreign_keys=[reported_id])
+

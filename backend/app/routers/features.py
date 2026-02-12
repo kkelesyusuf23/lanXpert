@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 from .. import models, schemas, dependencies, crud
 from ..database import get_db
@@ -56,7 +57,11 @@ def get_random_word(
         # Free Plan Logic (Assume no plan_id means Free)
         # 5 words limit
         if not current_user.plan_id and daily_limit.used_words >= 5:
-            raise HTTPException(status_code=403, detail="Free plan limit reached (5 words/day). Please upgrade.")
+            # Check if UserDailyLimit is stale (not today)? 
+            # Actually get_random_word creates a new entry if today's doesn't exist, 
+            # but if we just fetched it, it might be old if logic was different?
+            # The logic at line 45 filters by date.today(), so it is today's limit.
+            raise HTTPException(status_code=403, detail="Daily word limit reached (5 words). Upgrade to Pro.")
 
         # 2. Get Random Word (Target Language)
         # Ideally filter by user's target language
@@ -99,8 +104,8 @@ def get_random_word(
         if not word_log:
             new_log = models.WordLog(user_id=current_user.id, word_id=word.id)
             db.add(new_log)
-            # Update Stats (+10 XP)
-            crud.update_user_stats(db, current_user, xp_gain=10)
+            # Update Stats (+2 XP)
+            crud.update_user_stats(db, current_user, xp_gain=2)
             db.commit() # Ensure log and stats are saved
         
         return word
@@ -111,6 +116,31 @@ def get_random_word(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+@router_words.get("/learned/today", response_model=List[schemas.WordOut])
+def get_words_learned_today(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(dependencies.get_current_active_user)
+):
+    from datetime import datetime
+    
+    # Simple UTC-based "today"
+    # Note: Depending on user timezone vs server time, this might reset at weird times. 
+    # For MVP, UTC serves as a consistent global day.
+    today = datetime.utcnow().date()
+    # Or rely on datetime(today).combin(time.min) if needed, but date comparison works in SQL usually
+    
+    logs = db.query(models.WordLog).filter(
+        models.WordLog.user_id == current_user.id,
+        func.date(models.WordLog.created_at) == today
+    ).all()
+    
+    word_ids = [log.word_id for log in logs]
+    
+    if not word_ids:
+        return []
+
+    return db.query(models.Word).filter(models.Word.id.in_(word_ids)).all()
 
 # ...
 
@@ -173,6 +203,26 @@ def get_questions(
 @router_questions.post("/")
 def create_question(question: schemas.QuestionCreate, db: Session = Depends(get_db), current_user: models.User = Depends(dependencies.get_current_active_user)):
     try:
+        # Check Daily Limits (Free: 2 Questions/day)
+        if not current_user.plan_id:
+             # Check/Create Daily Limit Entry
+            from datetime import date
+            daily_limit = db.query(models.UserDailyLimit).filter(
+                models.UserDailyLimit.user_id == current_user.id,
+                models.UserDailyLimit.date == date.today()
+            ).first()
+            
+            if not daily_limit:
+                daily_limit = models.UserDailyLimit(user_id=current_user.id, date=date.today())
+                db.add(daily_limit)
+                db.commit()
+                db.refresh(daily_limit)
+            
+            # Ensure counters are int
+            used_q = daily_limit.used_questions or 0
+            if used_q >= 2:
+                 raise HTTPException(status_code=403, detail="Daily question limit reached (2 questions). Upgrade to Pro.")
+
         # Manual creation
         payload = question.dict()
         payload['user_id'] = current_user.id
@@ -180,8 +230,8 @@ def create_question(question: schemas.QuestionCreate, db: Session = Depends(get_
         db.add(new_q)
         db.commit()
         
-        # Update Stats (+20 XP)
-        crud.update_user_stats(db, current_user, xp_gain=20)
+        # Update Stats (+5 XP)
+        crud.update_user_stats(db, current_user, xp_gain=5)
         
         # Increment Daily Question Counter
         crud.increment_daily_counter(db, current_user.id, 'questions')
@@ -189,7 +239,10 @@ def create_question(question: schemas.QuestionCreate, db: Session = Depends(get_
         db.commit()
         
         return {"status": "success", "id": new_q.id, "message": "Question created"}
+    except HTTPException:
+        raise
     except Exception as e:
+        db.rollback()
         print(f"Error creating question: {e}")
         import traceback
         traceback.print_exc()
@@ -215,8 +268,8 @@ def create_answer(answer: schemas.AnswerCreate, db: Session = Depends(get_db), c
         db.add(notification)
         db.commit()
 
-    # Update Stats (+15 XP)
-    crud.update_user_stats(db, current_user, xp_gain=15)
+    # Update Stats (+5 XP)
+    crud.update_user_stats(db, current_user, xp_gain=5)
     db.commit()
 
     return new_answer
@@ -323,8 +376,8 @@ def toggle_article_like(
             
         db.commit()
         
-        # Update Stats (+5 XP)
-        crud.update_user_stats(db, current_user, xp_gain=5)
+        # Update Stats (+1 XP)
+        crud.update_user_stats(db, current_user, xp_gain=1)
         db.commit()
         
         return {"status": "liked"}
@@ -332,14 +385,32 @@ def toggle_article_like(
 @router_articles.post("/", response_model=schemas.ArticleOut)
 def create_article(article: schemas.ArticleCreate, db: Session = Depends(get_db), current_user: models.User = Depends(dependencies.get_current_active_user)):
     
-    # Check Plan Limits (Free users: Max 1 Article)
-    if not current_user.plan_id: # Assuming None is Free plan
-        article_count = db.query(models.Article).filter(models.Article.user_id == current_user.id).count()
-        if article_count >= 1:
+    # Check Plan Limits (Free users: Max 1 Article/Day)
+    if not current_user.plan_id: 
+        from datetime import date
+        daily_limit = db.query(models.UserDailyLimit).filter(
+            models.UserDailyLimit.user_id == current_user.id,
+            models.UserDailyLimit.date == date.today()
+        ).first()
+
+        if not daily_limit:
+            daily_limit = models.UserDailyLimit(user_id=current_user.id, date=date.today())
+            db.add(daily_limit)
+            db.commit()
+            db.refresh(daily_limit)
+
+        if daily_limit.used_articles >= 1:
             raise HTTPException(
                 status_code=403, 
-                detail="Free plan limit reached (1 Article). Please upgrade to post more."
+                detail="Daily article limit reached (1 Article). Upgrade to post more."
             )
+        
+        # Increment counter here since we validated it
+        # Note: We also have 'increment_daily_counter' which increments. 
+        # But we need to increment it somewhere. 
+        # Unlike questions where I used increment_daily_counter AFTER, here I am checking UserDailyLimit manually.
+        # Let's rely on increment_daily_counter called later, but we must ensure we don't double count if I add logic here.
+        # Actually, let's just let the flow continue, and add increment_daily_counter at the end like questions.
 
     try:
         import uuid
@@ -361,8 +432,12 @@ def create_article(article: schemas.ArticleCreate, db: Session = Depends(get_db)
         db.add(new_article)
         db.commit()
         
-        # Update Stats (+50 XP)
-        crud.update_user_stats(db, current_user, xp_gain=50)
+        # Update Stats (+20 XP)
+        crud.update_user_stats(db, current_user, xp_gain=20)
+        db.commit()
+
+        # Increment Daily Counter for Articles
+        crud.increment_daily_counter(db, current_user.id, 'articles')
         db.commit()
         
         # ID is guaranteed to be set
@@ -415,7 +490,7 @@ def read_article_handler(
     
     # Award XP for reading (e.g. 5 XP), ensure we don't spam XP for same article?
     # For now, simple logic: Reading awards XP.
-    crud.update_user_stats(db, current_user, xp_gain=5)
+    crud.update_user_stats(db, current_user, xp_gain=1)
     
     db.commit()
     return {"status": "success", "message": "Article marked as read"}

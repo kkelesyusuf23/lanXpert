@@ -26,6 +26,7 @@ class UserOut(UserBase):
     target_language_id: Optional[str]
     email_verified: bool
     roles: List["UserRoleOut"] = []
+    plan: Optional["PlanOut"] = None
 
     class Config:
         from_attributes = True
@@ -40,6 +41,20 @@ class RoleOut(RoleBase):
 
 class UserRoleOut(BaseModel):
     role: RoleOut
+    class Config:
+        from_attributes = True
+
+class PlanBase(BaseModel):
+    name: str
+    price: float = 0
+    daily_word_limit: int = 10
+    daily_question_limit: int = 2
+    daily_answer_limit: int = 5
+    daily_article_limit: int = 1
+
+class PlanOut(PlanBase):
+    id: str
+    is_active: bool
     class Config:
         from_attributes = True
 
@@ -204,3 +219,42 @@ try:
 except AttributeError:
     UserOut.update_forward_refs()
 
+
+# --- Chat Schemas ---
+
+class MessageBase(BaseModel):
+    content: str
+
+class MessageCreate(MessageBase):
+    chat_id: str
+
+class MessageOut(MessageBase):
+    id: str
+    chat_id: str
+    sender_id: Optional[str] = None
+    is_read: bool
+    created_at: datetime
+    sender: Optional[UserOut] = None
+
+    class Config:
+        from_attributes = True
+
+class ChatParticipantOut(BaseModel):
+    user: UserOut
+    joined_at: datetime
+    class Config:
+        from_attributes = True
+
+class ChatOut(BaseModel):
+    id: str
+    type: str # direct, random
+    updated_at: Optional[datetime] = None
+    participants: List[ChatParticipantOut] = []
+    last_message: Optional[MessageOut] = None # Will need to compute or fetch separately often
+    
+    class Config:
+        from_attributes = True
+
+class ChatCreate(BaseModel):
+    type: str = "direct"
+    target_user_id: Optional[str] = None # If direct

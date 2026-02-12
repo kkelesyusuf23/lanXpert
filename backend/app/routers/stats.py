@@ -45,12 +45,12 @@ def get_overview_stats(
     
     # Next Level calculation
     # If using simplified thresholds from features.py logic
-    next_level_xp = 100
-    if xp >= 4000: next_level_xp = 10000 # Max
-    elif xp >= 2000: next_level_xp = 4000
-    elif xp >= 1000: next_level_xp = 2000
-    elif xp >= 500: next_level_xp = 1000
-    elif xp >= 100: next_level_xp = 500
+    next_level_xp = 500
+    if xp >= 25000: next_level_xp = 100000 # Max
+    elif xp >= 10000: next_level_xp = 25000
+    elif xp >= 5000: next_level_xp = 10000
+    elif xp >= 2000: next_level_xp = 5000
+    elif xp >= 500: next_level_xp = 2000
     
     progress_percentage = min(int((xp / next_level_xp) * 100), 100) if next_level_xp > 0 else 100
 

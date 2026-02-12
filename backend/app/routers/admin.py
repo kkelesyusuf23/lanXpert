@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from .. import models, schemas, dependencies
 from ..database import get_db
@@ -27,10 +27,29 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
 
 @router.get("/users", response_model=List[schemas.UserOut], dependencies=[Depends(dependencies.get_current_super_admin)])
 def get_users(skip: int = 0, limit: int = 50, search: Optional[str] = None, db: Session = Depends(get_db)):
-    query = db.query(models.User)
+    query = db.query(models.User).options(joinedload(models.User.plan))
     if search:
         query = query.filter(models.User.username.ilike(f"%{search}%"))
     return query.offset(skip).limit(limit).all()
+
+@router.put("/users/{user_id}/plan/{plan_id}", dependencies=[Depends(dependencies.get_current_super_admin)])
+def update_user_plan(user_id: str, plan_id: str, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    plan = db.query(models.Plan).filter(models.Plan.id == plan_id).first()
+    if not plan and plan_id != "free": #Allow "free" string if logic requires, but ideally we use plan IDs
+         raise HTTPException(status_code=404, detail="Plan not found")
+         
+    user.plan_id = plan.id
+    db.commit()
+    
+    return {"status": "success", "message": f"User plan updated to {plan.name}"}
+
+@router.get("/plans", response_model=List[schemas.PlanOut], dependencies=[Depends(dependencies.get_current_super_admin)])
+def get_plans(db: Session = Depends(get_db)):
+    return db.query(models.Plan).filter(models.Plan.is_active == True).all()
 
 @router.put("/users/{user_id}/toggle-active", dependencies=[Depends(dependencies.get_current_super_admin)])
 def toggle_user_active(user_id: str, db: Session = Depends(get_db)):

@@ -1,0 +1,15 @@
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 98abc150-d942-4919-ad3e-43574b6f32ec
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 98abc150-d942-4919-ad3e-43574b6f32ec
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 98abc150-d942-4919-ad3e-43574b6f32ec
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 98abc150-d942-4919-ad3e-43574b6f32ec
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 joined chat 98abc150-d942-4919-ad3e-43574b6f32ec
+INFO:app.routers.chat:User 9c8ed98d-afed-4699-9cd0-4f0850c4b5b2 created queue aea4eab6-1457-49de-a196-42cd5ec4f3f0
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a joined chat aea4eab6-1457-49de-a196-42cd5ec4f3f0
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 1a2a9bda-d2f4-4899-bce5-f5285d54abaf
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 1a2a9bda-d2f4-4899-bce5-f5285d54abaf
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue b2d87dbb-770b-4426-b9e4-f40166ab263b
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue b2d87dbb-770b-4426-b9e4-f40166ab263b
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a existing partners: set()
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a created queue 6f5e6337-07e6-4e41-8833-98cb7e8fd078
+INFO:app.routers.chat:User 466b2928-3a53-4e6a-8861-18d302892a6a already in queue 6f5e6337-07e6-4e41-8833-98cb7e8fd078

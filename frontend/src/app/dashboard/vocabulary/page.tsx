@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Book, Volume2, ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,9 +21,20 @@ export default function VocabularyPage() {
     const [error, setError] = useState("");
     const [limitReached, setLimitReached] = useState(false);
 
+    const [todayWords, setTodayWords] = useState<any[]>([]);
+
     // For Admin adding words (keeping this just in case, but hiding from main view)
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const { register, handleSubmit, reset, setValue } = useForm();
+
+    const fetchTodayWords = async () => {
+        try {
+            const res = await api.get("/words/learned/today");
+            setTodayWords(res.data);
+        } catch (error) {
+            console.error("Failed to fetch today words", error);
+        }
+    };
 
     const fetchRandomWord = async (forceNew = false) => {
         setIsLoading(true);
@@ -40,6 +52,7 @@ export default function VocabularyPage() {
                     // Just basic persistence for now.
                     setCurrentWord(parsed);
                     setIsLoading(false);
+                    fetchTodayWords(); // Also fetch history
                     return;
                 } catch (e) {
                     localStorage.removeItem("currentWord");
@@ -51,6 +64,7 @@ export default function VocabularyPage() {
             const response = await api.get("/words/random");
             setCurrentWord(response.data);
             localStorage.setItem("currentWord", JSON.stringify(response.data));
+            fetchTodayWords(); // Refresh history
         } catch (err: any) {
             if (err.response?.status === 403) {
                 setLimitReached(true);
@@ -67,6 +81,7 @@ export default function VocabularyPage() {
     useEffect(() => {
         // Initial load: don't force new, try storage
         fetchRandomWord(false);
+        fetchTodayWords();
     }, []);
 
     const onAddSubmit = async (data: any) => {
@@ -105,7 +120,9 @@ export default function VocabularyPage() {
                     </div>
                     <h2 className="text-2xl font-bold text-white">Daily Limit Reached</h2>
                     <p className="text-gray-400 max-w-md">You've reached your 5 free words for today. Upgrade to LanXpert Pro for unlimited learning.</p>
-                    <Button className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90">Upgrade Now</Button>
+                    <Link href="/pricing">
+                        <Button className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90">Upgrade Now</Button>
+                    </Link>
                 </div>
             ) : error ? (
                 <div className="text-center text-red-400">{error}</div>
@@ -169,6 +186,34 @@ export default function VocabularyPage() {
             ) : (
                 <div className="text-gray-500">No words available.</div>
             )}
+
+            {/* Today's Words Section */}
+            <div className="w-full max-w-4xl mt-12 border-t border-white/10 pt-8">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <Book className="w-5 h-5 text-purple-400" />
+                    Words Learned Today
+                </h3>
+
+                {todayWords.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 bg-white/5 rounded-lg border border-white/5 border-dashed">
+                        No words learned yet today. Start your session!
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {todayWords.map((word: any) => (
+                            <div key={word.id} className="bg-black/20 border border-white/10 rounded-lg p-4 hover:bg-white/5 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h4 className="font-bold text-lg text-white">{word.word}</h4>
+                                    <Badge variant="outline" className="text-xs border-white/10 text-gray-400">
+                                        {word.part_of_speech}
+                                    </Badge>
+                                </div>
+                                <p className="text-sm text-gray-400 line-clamp-2">{word.meaning}</p>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

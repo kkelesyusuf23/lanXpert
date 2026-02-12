@@ -18,7 +18,7 @@ export function Navbar() {
 
                 <nav className="hidden md:flex gap-6 items-center">
                     <Link href="#features" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Features</Link>
-                    <Link href="#pricing" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Pricing</Link>
+                    <Link href="/pricing" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">Pricing</Link>
                     <Link href="/about" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">About</Link>
                 </nav>
 

@@ -15,12 +15,29 @@ import {
 import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 export default function UsersAdminPage() {
     const [users, setUsers] = useState<any[]>([]);
+    const [plans, setPlans] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+    const fetchPlans = async () => {
+        try {
+            const res = await api.get("/admin/plans");
+            setPlans(res.data);
+        } catch (error) {
+            console.error("Failed to fetch plans", error);
+        }
+    };
 
     const fetchUsers = async () => {
         setIsLoading(true);
@@ -35,6 +52,10 @@ export default function UsersAdminPage() {
             setIsLoading(false);
         }
     };
+
+    useEffect(() => {
+        fetchPlans();
+    }, []);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -93,6 +114,21 @@ export default function UsersAdminPage() {
         }
     };
 
+    const updateUserPlan = async (userId: string, planId: string) => {
+        setActionLoading(userId);
+        try {
+            await api.put(`/admin/users/${userId}/plan/${planId}`);
+            // Optimistic update
+            const plan = plans.find(p => p.id === planId);
+            setUsers(users.map(u => u.id === userId ? { ...u, plan_id: planId, plan: plan } : u));
+        } catch (error) {
+            console.error("Failed to update plan", error);
+            alert("Failed to update user plan.");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -120,6 +156,7 @@ export default function UsersAdminPage() {
                             <TableHead>Username</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Joined</TableHead>
+                            <TableHead>Plan</TableHead>
                             <TableHead>Role</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -148,6 +185,28 @@ export default function UsersAdminPage() {
                                     <TableCell className="text-gray-400">{user.email}</TableCell>
                                     <TableCell className="text-gray-400 text-xs">
                                         {user.created_at ? formatDistanceToNow(new Date(user.created_at), { addSuffix: true }) : '-'}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Select
+                                            disabled={actionLoading === user.id}
+                                            value={user.plan_id || "free"}
+                                            onValueChange={(val) => updateUserPlan(user.id, val)}
+                                        >
+                                            <SelectTrigger className="w-[120px] h-8 text-xs bg-white/5 border-white/10">
+                                                <SelectValue placeholder="Select Plan" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {/* Fallback option if user has no plan but we don't have "Free" in DB plans yet */}
+                                                {!plans.find(p => p.name.toLowerCase() === 'free') && (
+                                                    <SelectItem value="free">Free (Default)</SelectItem>
+                                                )}
+                                                {plans.map((plan) => (
+                                                    <SelectItem key={plan.id} value={plan.id}>
+                                                        {plan.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-wrap gap-1">

@@ -1,5 +1,6 @@
 
 import { Bell, Search, User, Check, X } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,11 +9,19 @@ import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
+import { useUser } from "@/contexts/UserContext";
+import { cn } from "@/lib/utils";
+
 export default function Header() {
+    const { user } = useUser();
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
+
+    const planName = user?.plan?.name?.toLowerCase() || "free";
+    const isPro = planName === "pro";
+    const isEnterprise = planName === "enterprise";
 
     const fetchNotifications = async () => {
         try {
@@ -25,11 +34,13 @@ export default function Header() {
     };
 
     useEffect(() => {
-        fetchNotifications();
-        // Poll every 60 seconds
-        const interval = setInterval(fetchNotifications, 60000);
-        return () => clearInterval(interval);
-    }, []);
+        if (user) {
+            fetchNotifications();
+            // Poll every 60 seconds
+            const interval = setInterval(fetchNotifications, 60000);
+            return () => clearInterval(interval);
+        }
+    }, [user]);
 
     const markRead = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -62,6 +73,8 @@ export default function Header() {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    if (!user) return null;
 
     return (
         <header className="h-16 border-b border-white/10 bg-black/50 backdrop-blur flex items-center justify-between px-8 relative z-50">
@@ -129,12 +142,26 @@ export default function Header() {
 
                 <div className="flex items-center space-x-3 pl-4 border-l border-white/10">
                     <div className="text-right hidden md:block">
-                        <p className="text-sm font-medium text-white">Guest User</p>
-                        <p className="text-xs text-gray-500">Free Plan</p>
+                        <p className={cn("text-sm font-medium", isEnterprise ? "text-yellow-400" : "text-white")}>
+                            {user.username}
+                        </p>
+                        <Link href="/pricing" className={cn(
+                            "text-xs font-medium transition-colors",
+                            isEnterprise ? "text-yellow-500/80" :
+                                isPro ? "text-yellow-300" :
+                                    "text-purple-400 hover:text-purple-300"
+                        )}>
+                            {isEnterprise ? "Enterprise" : isPro ? "Pro Member" : "Free Plan • Upgrade"}
+                        </Link>
                     </div>
-                    <Avatar className="h-9 w-9 border border-white/10">
-                        <AvatarImage src="https://github.com/shadcn.png" />
-                        <AvatarFallback>GX</AvatarFallback>
+                    <Avatar className={cn(
+                        "h-9 w-9 border-2 transition-all duration-300",
+                        isEnterprise ? "border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
+                            isPro ? "border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.5)]" :
+                                "border-white/10"
+                    )}>
+                        <AvatarImage src={`https://ui-avatars.com/api/?name=${user.username}&background=random`} />
+                        <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                 </div>
             </div>

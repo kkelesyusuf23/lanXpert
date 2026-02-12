@@ -31,7 +31,11 @@ import { useForm } from "react-hook-form";
 import { LANGUAGES } from "@/lib/constants";
 import { formatDistanceToNow } from "date-fns"; // Standard relative time
 
+import { toast } from "sonner";
+import { useRouter } from "next/navigation"; // Import useRouter
+
 export default function QuestionsPage() {
+    const router = useRouter(); // Initialize router
     const [questions, setQuestions] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -228,8 +232,44 @@ export default function QuestionsPage() {
             });
             setIsEditing(false);
             setEditingId(null);
-        } catch (error) {
-            console.error("Failed to save question:", error);
+        } catch (error: any) { // Type as any to access response
+            if (error.response && error.response.status === 403) {
+                toast.warning("Daily Limit Reached", {
+                    description: "You have reached your daily question limit. Upgrade to Pro for unlimited access.",
+                    action: {
+                        label: "Upgrade",
+                        onClick: () => {
+                            router.push("/pricing");
+                            setIsDialogOpen(false);
+                        }
+                    },
+                    duration: 5000,
+                });
+            } else {
+                console.error("Failed to save question:", error);
+                toast.error("Failed create question", {
+                    description: error.response?.data?.detail || "Please check your input and try again."
+                });
+            }
+        }
+    };
+
+    const handleMessageUser = async (userId: string, e: any) => {
+        e.stopPropagation();
+        try {
+            const res = await api.post("/chats/direct", { target_user_id: userId });
+            // Using window.location to force full reload if needed, but router.push is better for SPA
+            router.push(`/dashboard/chat?chatId=${res.data.id}`);
+        } catch (error: any) {
+            console.error(error);
+            if (error.response?.status === 403) {
+                toast.warning("Messaging Restricted", {
+                    description: error.response.data.detail || "Upgrade to Enterprise to message users directly.",
+                    action: { label: "Upgrade", onClick: () => router.push("/pricing") }
+                });
+            } else {
+                toast.error("Failed to start chat");
+            }
         }
     };
 
@@ -427,7 +467,19 @@ export default function QuestionsPage() {
                                     </Avatar>
                                     <div>
                                         <h3 className="font-semibold text-white">{selectedQuestion.user?.username}</h3>
-                                        <p className="text-xs text-gray-400">{timeAgo(selectedQuestion.created_at)}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-xs text-gray-400">{timeAgo(selectedQuestion.created_at)}</p>
+                                            {currentUser && selectedQuestion.user_id !== currentUser.id && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-5 px-2 text-[10px] text-purple-400 hover:text-purple-300 hover:bg-purple-900/20"
+                                                    onClick={(e) => handleMessageUser(selectedQuestion.user_id, e)}
+                                                >
+                                                    <MessageCircle className="w-3 h-3 mr-1" /> Message
+                                                </Button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
 

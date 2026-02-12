@@ -92,29 +92,27 @@ def update_user_streak(db: Session, user: models.User):
 def increment_daily_counter(db: Session, user_id: str, counter_type: str):
     # counter_type: 'words', 'questions', 'answers', 'articles'
     from datetime import date
-    try:
-        daily_limit = db.query(models.UserDailyLimit).filter(
-            models.UserDailyLimit.user_id == user_id,
-            models.UserDailyLimit.date == date.today()
-        ).first()
-        
-        if not daily_limit:
-            daily_limit = models.UserDailyLimit(user_id=user_id, date=date.today())
-            db.add(daily_limit)
-            
-        if counter_type == 'words':
-            daily_limit.used_words = (daily_limit.used_words or 0) + 1
-        elif counter_type == 'questions':
-            daily_limit.used_questions = (daily_limit.used_questions or 0) + 1
-        elif counter_type == 'answers':
-            daily_limit.used_answers = (daily_limit.used_answers or 0) + 1
-        elif counter_type == 'articles':
-            daily_limit.used_articles = (daily_limit.used_articles or 0) + 1
-            
+    
+    daily_limit = db.query(models.UserDailyLimit).filter(
+        models.UserDailyLimit.user_id == user_id,
+        models.UserDailyLimit.date == date.today()
+    ).first()
+    
+    if not daily_limit:
+        daily_limit = models.UserDailyLimit(user_id=user_id, date=date.today())
         db.add(daily_limit)
-        return daily_limit
-    except Exception as e:
-        print(f"Error incrementing daily counter: {e}")
+        
+    if counter_type == 'words':
+        daily_limit.used_words = (daily_limit.used_words or 0) + 1
+    elif counter_type == 'questions':
+        daily_limit.used_questions = (daily_limit.used_questions or 0) + 1
+    elif counter_type == 'answers':
+        daily_limit.used_answers = (daily_limit.used_answers or 0) + 1
+    elif counter_type == 'articles':
+        daily_limit.used_articles = (daily_limit.used_articles or 0) + 1
+        
+    db.add(daily_limit)
+    return daily_limit
 
 # --- Feature CRUD ---
 
@@ -219,34 +217,70 @@ def mark_answer_helpful(db: Session, user_id: str, answer_id: str):
     return True
 
 def get_daily_sentence(db: Session):
-    # Logic: Get a random question with accepted answer or high votes from last 24h
-    # For MVP: Just get latest high voted answer
-    from sqlalchemy import desc
-    from datetime import datetime, timedelta
+    # Logic: Get the "Best Answer" based on recent helpful marks.
+    # Priority 1: Answer with most helpful marks TODAY.
+    # Priority 2: Answer with most helpful marks YESTERDAY.
+    # Priority 3: Highest rated answer from the LAST 7 DAYS.
+    # Priority 4: Latest answer (Safety net).
     
-    # Time window: Last 24 hours
-    since = datetime.utcnow() - timedelta(hours=24)
+    from sqlalchemy import desc, func
+    from datetime import datetime, timedelta, time
+    from sqlalchemy.orm import joinedload
     
-    # Try to find recent top answer (created in last 24h OR marked helpful recently? 
-    # Usually featured items are freshly popular. Let's look for high helpful count answers created recently.
-    top_answer = db.query(models.Answer).filter(
-        models.Answer.helpful_count > 0,
-        models.Answer.created_at >= since
-    ).order_by(desc(models.Answer.helpful_count)).first()
+    now = datetime.utcnow()
+    today_start = datetime.combine(now.date(), time.min)
+    yesterday_start = today_start - timedelta(days=1)
     
-    if top_answer:
-        return top_answer
+    # Helper to fetch full answer object with user
+    def get_full_answer(ans_id):
+        return db.query(models.Answer).options(
+            joinedload(models.Answer.user)
+        ).filter(models.Answer.id == ans_id).first()
+
+    # 1. Check Today's Activity
+    # Find answer_id with most entries in AnswerHelpful since today_start
+    todays_top = db.query(
+        models.AnswerHelpful.answer_id, 
+        func.count(models.AnswerHelpful.answer_id).label('count')
+    ).filter(
+        models.AnswerHelpful.created_at >= today_start
+    ).group_by(
+        models.AnswerHelpful.answer_id
+    ).order_by(desc('count')).first()
+    
+    if todays_top:
+        return get_full_answer(todays_top.answer_id)
         
-    # Fallback 1: Any high voted answer from anytime (if no recent ones)
-    top_all_time = db.query(models.Answer).filter(
+    # 2. Check Yesterday's Activity
+    yesterdays_top = db.query(
+        models.AnswerHelpful.answer_id, 
+        func.count(models.AnswerHelpful.answer_id).label('count')
+    ).filter(
+        models.AnswerHelpful.created_at >= yesterday_start,
+        models.AnswerHelpful.created_at < today_start
+    ).group_by(
+        models.AnswerHelpful.answer_id
+    ).order_by(desc('count')).first()
+    
+    if yesterdays_top:
+         return get_full_answer(yesterdays_top.answer_id)
+
+    # 3. Fallback: Hightest Rated from Last 7 Days (Fresh content)
+    week_ago = now - timedelta(days=7)
+    weekly_best = db.query(models.Answer).options(
+        joinedload(models.Answer.user)
+    ).filter(
+        models.Answer.created_at >= week_ago,
         models.Answer.helpful_count > 0
     ).order_by(desc(models.Answer.helpful_count)).first()
     
-    if top_all_time:
-        return top_all_time
-
-    # Fallback 2: Any recent answer
-    return db.query(models.Answer).order_by(desc(models.Answer.created_at)).first()
+    if weekly_best:
+        return weekly_best
+        
+    # 4. Final Fallback: Absolute Latest Answer
+    return db.query(models.Answer).options(
+        joinedload(models.Answer.user)
+    ).order_by(desc(models.Answer.created_at)).first()
 
 def get_weekly_champion(db: Session):
     # Logic: User with most accepted answers or XP in last 7 days
