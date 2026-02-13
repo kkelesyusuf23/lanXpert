@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Book, Globe, MessageCircle, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Book, Globe, Users } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 

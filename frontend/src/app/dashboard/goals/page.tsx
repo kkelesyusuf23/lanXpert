@@ -8,8 +8,8 @@ import { Target, Flame, CheckCircle2, MessageSquare, BookOpen, PenTool } from "l
 import api from "@/lib/api";
 
 export default function GoalsPage() {
-    const [goals, setGoals] = useState<any>(null);
-    const [stats, setStats] = useState<any>(null);
+    const [goals, setGoals] = useState<any | null>(null);
+    const [stats, setStats] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

@@ -20,7 +20,7 @@ export default function AdminLayout({
         const checkAuth = async () => {
             try {
                 const res = await api.get("/users/me");
-                const roles = res.data.roles?.map((r: any) => r.role?.name || r.name) || [];
+                const roles = res.data.roles?.map((r: any) => (r.role as any)?.name || r.name) || [];
 
                 const isAdmin = roles.includes("admin");
                 const isModerator = roles.includes("moderator");

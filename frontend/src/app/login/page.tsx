@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -12,12 +11,11 @@ import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
-    const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
     const { register, handleSubmit } = useForm();
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: Record<string, string>) => {
         setIsLoading(true);
         setError("");
         try {
@@ -41,18 +39,19 @@ export default function LoginPage() {
                 } else {
                     window.location.href = "/dashboard";
                 }
-            } catch (e) {
+            } catch {
                 window.location.href = "/dashboard";
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            if (err.response) {
-                if (err.response.status === 401) {
+            const loginErr = err as { response?: { status?: number; data?: { detail?: string } } };
+            if (loginErr.response) {
+                if (loginErr.response.status === 401) {
                     setError("Invalid email or password");
-                } else if (err.response.status >= 500) {
+                } else if ((loginErr.response.status ?? 0) >= 500) {
                     setError("Server error. Please try again later.");
                 } else {
-                    setError(err.response.data?.detail || "Login failed");
+                    setError(loginErr.response.data?.detail || "Login failed");
                 }
             } else {
                 setError("Connection error. Please check your internet connection.");
@@ -156,7 +155,7 @@ export default function LoginPage() {
                         </Button>
 
                         <p className="text-center text-sm text-gray-400 mt-6">
-                            Don't have an account? <Link href="/register" className="text-white hover:underline underline-offset-4">Sign up</Link>
+                            Don&apos;t have an account? <Link href="/register" className="text-white hover:underline underline-offset-4">Sign up</Link>
                         </p>
                     </form>
                 </div>

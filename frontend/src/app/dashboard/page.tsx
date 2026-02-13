@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUpRight, BookOpen, Clock, MessageCircle, MoreHorizontal, PenTool, Target, CheckCircle2, MessageSquare, Flame } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowUpRight, BookOpen, PenTool, Target, CheckCircle2, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
@@ -12,7 +10,7 @@ import DailySentenceCard from "@/components/dashboard/DailySentenceCard";
 import WeeklyChampionCard from "@/components/dashboard/WeeklyChampionCard";
 
 export default function DashboardOverview() {
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<any | null>(null);
     const [activities, setActivities] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 

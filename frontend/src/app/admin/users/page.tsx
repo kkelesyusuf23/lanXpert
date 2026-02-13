@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, Ban, Unlock, Shield, ShieldOff, Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,7 @@ export default function UsersAdminPage() {
         }
     };
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         setIsLoading(true);
         try {
             const params = new URLSearchParams();
@@ -51,7 +51,7 @@ export default function UsersAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [search]);
 
     useEffect(() => {
         fetchPlans();
@@ -62,7 +62,7 @@ export default function UsersAdminPage() {
             fetchUsers();
         }, 300);
         return () => clearTimeout(timer);
-    }, [search]);
+    }, [search, fetchUsers]);
 
     const toggleActive = async (userId: string) => {
         setActionLoading(userId);
@@ -78,7 +78,7 @@ export default function UsersAdminPage() {
     };
 
     const toggleRoleForUser = async (userId: string, currentRoles: any[], roleToToggle: 'admin' | 'moderator') => {
-        const hasRole = currentRoles && currentRoles.some((r: any) => r.role?.name === roleToToggle || r.name === roleToToggle);
+        const hasRole = currentRoles && currentRoles.some((r: any) => (r.role as any)?.name === roleToToggle || r.name === roleToToggle);
         const action = hasRole ? `Remove ${roleToToggle} role` : `Make ${roleToToggle}`;
 
         if (!confirm(`Are you sure you want to ${action} for this user?`)) return;
@@ -213,7 +213,7 @@ export default function UsersAdminPage() {
                                             {user.roles && user.roles.length > 0 ? (
                                                 user.roles.map((r: any, idx: number) => (
                                                     <Badge key={idx} variant="outline" className="border-blue-500/30 text-blue-400 capitalize">
-                                                        {r.role?.name || r.name}
+                                                        {(r.role as any)?.name || r.name}
                                                     </Badge>
                                                 ))
                                             ) : (
@@ -244,8 +244,8 @@ export default function UsersAdminPage() {
                                             size="icon"
                                             onClick={() => toggleRoleForUser(user.id, user.roles, 'moderator')}
                                             disabled={actionLoading === user.id}
-                                            title={user.roles?.some((r: any) => r.role?.name === 'moderator') ? "Remove Moderator" : "Make Moderator"}
-                                            className={`h-8 w-8 ${user.roles?.some((r: any) => r.role?.name === 'moderator') ? 'text-orange-400 hover:bg-orange-900/20' : 'text-gray-400 hover:bg-white/10'}`}
+                                            title={user.roles?.some((r: any) => (r.role as any)?.name === 'moderator') ? "Remove Moderator" : "Make Moderator"}
+                                            className={`h-8 w-8 ${user.roles?.some((r: any) => (r.role as any)?.name === 'moderator') ? 'text-orange-400 hover:bg-orange-900/20' : 'text-gray-400 hover:bg-white/10'}`}
                                         >
                                             <Shield className="w-4 h-4" />
                                         </Button>
@@ -256,10 +256,10 @@ export default function UsersAdminPage() {
                                             size="icon"
                                             onClick={() => toggleRoleForUser(user.id, user.roles, 'admin')}
                                             disabled={actionLoading === user.id}
-                                            title={user.roles?.some((r: any) => r.role?.name === 'admin') ? "Remove Admin" : "Make Admin"}
-                                            className={`h-8 w-8 ${user.roles?.some((r: any) => r.role?.name === 'admin') ? 'text-blue-400 hover:bg-blue-900/20' : 'text-gray-400 hover:bg-white/10'}`}
+                                            title={user.roles?.some((r: any) => (r.role as any)?.name === 'admin') ? "Remove Admin" : "Make Admin"}
+                                            className={`h-8 w-8 ${user.roles?.some((r: any) => (r.role as any)?.name === 'admin') ? 'text-blue-400 hover:bg-blue-900/20' : 'text-gray-400 hover:bg-white/10'}`}
                                         >
-                                            {user.roles?.some((r: any) => r.role?.name === 'admin') ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                                            {user.roles?.some((r: any) => (r.role as any)?.name === 'admin') ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
                                         </Button>
                                         <Button
                                             variant="ghost"

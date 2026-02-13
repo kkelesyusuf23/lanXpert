@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import api from "@/lib/api";
@@ -10,18 +10,18 @@ import { LANGUAGES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Globe } from "lucide-react";
 
 export default function OnboardingPage() {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
-    const { setValue, handleSubmit, watch, formState: { errors } } = useForm();
+    const { setValue, handleSubmit, watch } = useForm();
 
     const nativeLang = watch("native_language_id");
     const targetLang = watch("target_language_id");
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: Record<string, string>) => {
         setIsLoading(true);
         try {
             await api.put("/users/me", {

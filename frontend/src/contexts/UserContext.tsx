@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import api from "@/lib/api";
 import { useRouter } from "next/navigation";
 
@@ -17,7 +17,7 @@ interface User {
     email: string;
     plan_id?: string;
     plan?: Plan;
-    roles?: any[];
+    roles?: { id: string; name: string }[];
     native_language_id?: string;
     target_language_id?: string;
     email_verified?: boolean;
@@ -36,23 +36,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
-    const fetchUser = async () => {
+    const fetchUser = useCallback(async () => {
         setIsLoading(true);
         try {
             const res = await api.get("/users/me");
             setUser(res.data);
         } catch (error) {
             console.error("Failed to fetch user", error);
-            // Optionally redirect here or let protected routes handle it
             router.push("/login");
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [router]);
 
     useEffect(() => {
         fetchUser();
-    }, []);
+    }, [fetchUser]);
 
     return (
         <UserContext.Provider value={{ user, isLoading, refreshUser: fetchUser }}>

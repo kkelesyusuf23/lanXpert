@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Crown, Flame } from "lucide-react";
 import api from "@/lib/api";
 
 export default function WeeklyChampionCard() {
-    const [champion, setChampion] = useState<any>(null);
+    const [champion, setChampion] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -73,13 +73,13 @@ export default function WeeklyChampionCard() {
                         </div>
                         <div className="h-full w-full rounded-full bg-black flex items-center justify-center overflow-hidden border-2 border-black">
                             <span className="text-2xl font-bold bg-gradient-to-r from-yellow-200 to-yellow-500 bg-clip-text text-transparent">
-                                {champion.user?.username?.[0]?.toUpperCase()}
+                                {((champion.user as any)?.username as string)?.[0]?.toUpperCase()}
                             </span>
                         </div>
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-white leading-tight">
-                            {champion.user?.username}
+                            {(champion.user as any)?.username as string}
                         </h3>
                         <div className="flex items-center gap-2 mt-1">
                             <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 border-yellow-500/20 px-2 py-0 text-[10px] h-5">

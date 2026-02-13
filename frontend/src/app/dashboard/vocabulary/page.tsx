@@ -1,18 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Book, Volume2, ArrowRight, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import api from "@/lib/api";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LANGUAGES } from "@/lib/constants";
-import { useForm } from "react-hook-form";
+
+
 
 export default function VocabularyPage() {
     const [currentWord, setCurrentWord] = useState<any | null>(null);
@@ -23,9 +19,7 @@ export default function VocabularyPage() {
 
     const [todayWords, setTodayWords] = useState<any[]>([]);
 
-    // For Admin adding words (keeping this just in case, but hiding from main view)
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const { register, handleSubmit, reset, setValue } = useForm();
+
 
     const fetchTodayWords = async () => {
         try {
@@ -36,25 +30,22 @@ export default function VocabularyPage() {
         }
     };
 
-    const fetchRandomWord = async (forceNew = false) => {
+    const fetchRandomWord = useCallback(async (forceNew = false) => {
         setIsLoading(true);
         setIsRevealed(false);
         setError("");
         setLimitReached(false);
 
-        // Check Local Storage first if not forced
         if (!forceNew) {
             const savedWord = localStorage.getItem("currentWord");
             if (savedWord) {
                 try {
                     const parsed = JSON.parse(savedWord);
-                    // Check if it's from today? Maybe not needed for "refresh" persistence request.
-                    // Just basic persistence for now.
                     setCurrentWord(parsed);
                     setIsLoading(false);
-                    fetchTodayWords(); // Also fetch history
+                    fetchTodayWords();
                     return;
-                } catch (e) {
+                } catch {
                     localStorage.removeItem("currentWord");
                 }
             }
@@ -64,11 +55,12 @@ export default function VocabularyPage() {
             const response = await api.get("/words/random");
             setCurrentWord(response.data);
             localStorage.setItem("currentWord", JSON.stringify(response.data));
-            fetchTodayWords(); // Refresh history
-        } catch (err: any) {
-            if (err.response?.status === 403) {
+            fetchTodayWords();
+        } catch (err) {
+            const fetchErr = err as { response?: { status?: number } };
+            if (fetchErr.response?.status === 403) {
                 setLimitReached(true);
-            } else if (err.response?.status === 404) {
+            } else if (fetchErr.response?.status === 404) {
                 setError("No words found for your target language yet.");
             } else {
                 setError("Failed to fetch new word.");
@@ -76,30 +68,13 @@ export default function VocabularyPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         // Initial load: don't force new, try storage
         fetchRandomWord(false);
         fetchTodayWords();
-    }, []);
-
-    const onAddSubmit = async (data: any) => {
-        try {
-            await api.post("/words", {
-                word: data.word,
-                meaning: data.meaning,
-                level: data.level,
-                part_of_speech: data.part_of_speech,
-                language_id: data.language_id
-            });
-            setIsAddDialogOpen(false);
-            reset();
-            // Optionally fetch new word if we want to show it immediately, but random is better
-        } catch (error) {
-            console.error("Failed to add word:", error);
-        }
-    };
+    }, [fetchRandomWord]);
 
     return (
         <div className="flex flex-col items-center justify-center min-h-[80vh] space-y-8 relative">
@@ -119,7 +94,7 @@ export default function VocabularyPage() {
                         <Lock className="w-10 h-10 text-purple-400" />
                     </div>
                     <h2 className="text-2xl font-bold text-white">Daily Limit Reached</h2>
-                    <p className="text-gray-400 max-w-md">You've reached your 5 free words for today. Upgrade to LanXpert Pro for unlimited learning.</p>
+                    <p className="text-gray-400 max-w-md">You&apos;ve reached your 5 free words for today. Upgrade to LanXpert Pro for unlimited learning.</p>
                     <Link href="/pricing">
                         <Button className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 hover:opacity-90">Upgrade Now</Button>
                     </Link>
