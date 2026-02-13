@@ -9,7 +9,7 @@ import os
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./lanxpert.db")
-print(f"DEBUG: Loaded DATABASE_URL: {SQLALCHEMY_DATABASE_URL}")
+
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, 

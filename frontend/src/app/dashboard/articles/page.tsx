@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { PenTool, Plus, Search, BookOpen, Clock, Heart, Share2, Globe, Loader2, Trash2, Bookmark } from "lucide-react";
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, useCallback } from "react";
+import { PenTool, Plus, Search, Clock, Heart, Share2, Loader2, Trash2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +20,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -29,7 +30,6 @@ import {
 import api from "@/lib/api";
 import { useForm } from "react-hook-form";
 import { LANGUAGES } from "@/lib/constants";
-import { formatDistanceToNow } from "date-fns";
 
 import Editor from "@/components/ui/rich-editor";
 
@@ -41,7 +41,7 @@ export default function ArticlesPage() {
 
     // New State
     const [activeTab, setActiveTab] = useState("all");
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentUser, setCurrentUser] = useState<any | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -61,16 +61,16 @@ export default function ArticlesPage() {
         } catch (e) { console.error(e) }
     };
 
-    const fetchArticles = async () => {
+    const fetchArticles = useCallback(async () => {
         setIsLoading(true);
         try {
-            let url = "/articles";
+            const url = "/articles";
             const params = new URLSearchParams();
             if (activeTab === "my_articles" && currentUser) {
-                params.append("user_id", currentUser.id);
+                params.append("user_id", currentUser.id as string);
             }
             if (currentUser) {
-                params.append("current_user_id", currentUser.id);
+                params.append("current_user_id", currentUser.id as string);
             }
 
             const response = await api.get(`${url}?${params.toString()}`);
@@ -80,7 +80,7 @@ export default function ArticlesPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeTab, currentUser]);
 
     const handleLike = async (articleId: string, e?: React.MouseEvent) => {
         e?.stopPropagation();
@@ -98,11 +98,11 @@ export default function ArticlesPage() {
                 // For now, let's just refetch list and find the article again from list?
                 // A bit hacky. Let's just manually toggle for the UI feeling.
                 const isLiked = selectedArticle.is_liked;
-                setSelectedArticle((prev: any) => ({
+                setSelectedArticle((prev: any | null) => prev ? ({
                     ...prev,
                     is_liked: !isLiked,
-                    like_count: isLiked ? prev.like_count - 1 : prev.like_count + 1
-                }));
+                    like_count: isLiked ? (prev.like_count as number) - 1 : (prev.like_count as number) + 1
+                }) : null);
             }
 
         } catch (error) {
@@ -118,7 +118,7 @@ export default function ArticlesPage() {
         });
     };
 
-    const toggleSave = async (article: any, e?: any) => {
+    const toggleSave = async (article: any, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         try {
             // Optimistic update
@@ -175,7 +175,7 @@ export default function ArticlesPage() {
         if (currentUser || activeTab === "all") {
             fetchArticles();
         }
-    }, [activeTab, currentUser]);
+    }, [activeTab, currentUser, fetchArticles]);
 
     // ... (rest of the component until CardFooter)
 
@@ -225,15 +225,14 @@ export default function ArticlesPage() {
                                 reset();
                                 setIsEditing(false);
                                 setEditingId(null);
-                            } catch (error: any) {
-                                if (error.response?.status === 403) {
-                                    // Limit error - handled gracefully
-                                    const errorMsg = error.response?.data?.detail || "You have reached your limit.";
-                                    // Using alert as requested, but without error log
+                            } catch (error) {
+                                const err = error as { response?: { status?: number; data?: { detail?: string } } };
+                                if (err.response?.status === 403) {
+                                    const errorMsg = err.response?.data?.detail || "You have reached your limit.";
                                     alert(errorMsg);
                                 } else {
                                     console.error("Failed to save article:", error);
-                                    const errorMsg = error.response?.data?.detail || "Failed to save article. Please try again.";
+                                    const errorMsg = err.response?.data?.detail || "Failed to save article. Please try again.";
                                     alert(errorMsg);
                                 }
                             }

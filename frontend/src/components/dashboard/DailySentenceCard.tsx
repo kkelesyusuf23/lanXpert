@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, ThumbsUp, Star, Loader2, Quote } from "lucide-react";
+import { ThumbsUp, Loader2, Quote } from "lucide-react";
 import api from "@/lib/api";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 
 export default function DailySentenceCard() {
-    const [sentence, setSentence] = useState<any>(null);
+    const [sentence, setSentence] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -64,7 +64,7 @@ export default function DailySentenceCard() {
                     </Badge>
                     <div className="flex items-center gap-2">
                         <div className="text-xs text-indigo-300/50 italic">
-                            {sentence.created_at && formatDistanceToNow(new Date(sentence.created_at), { addSuffix: true })}
+                            {sentence.created_at && formatDistanceToNow(new Date(sentence.created_at as string), { addSuffix: true })}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-indigo-300/70 bg-black/20 px-2 py-1 rounded-full">
                             <ThumbsUp className="h-3 w-3" /> {sentence.helpful_count || 0}
@@ -76,12 +76,12 @@ export default function DailySentenceCard() {
                 <div className="space-y-2">
                     {/* Display actual sentence if available in future schema, using answer_text for now */}
                     <p className="text-lg md:text-xl font-medium text-white italic leading-relaxed">
-                        "{sentence.answer_text}"
+                        &quot;{sentence.answer_text}&quot;
                     </p>
                     {/* Assuming we might fetch question text too, but schema currently only returns answer */}
                     {sentence.context_tags && (
                         <div className="flex flex-wrap gap-2 pt-2">
-                            {sentence.context_tags.split(',').map((tag: string, i: number) => (
+                            {(sentence.context_tags as string).split(',').map((tag: string, i: number) => (
                                 <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-gray-400 border border-white/10">
                                     {tag.trim()}
                                 </span>
@@ -93,9 +93,9 @@ export default function DailySentenceCard() {
                 <div className="pt-2 flex items-center justify-between text-xs text-gray-400 border-t border-white/5 mt-4">
                     <div className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
-                            {sentence.user?.username?.[0]?.toUpperCase() || 'U'}
+                            {((sentence.user as any)?.username as string)?.[0]?.toUpperCase() || 'U'}
                         </div>
-                        <span>by {sentence.user?.username || 'Unknown'}</span>
+                        <span>by {(sentence.user as any)?.username as string || 'Unknown'}</span>
                     </div>
                     <Link href={`/dashboard/questions`} className="text-indigo-400 hover:text-indigo-300 transition-colors">
                         View Context &rarr;

@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,12 +18,11 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
-import Editor from "@/components/ui/rich-editor";
 
 export default function SavedItemsPage() {
     const [savedItems, setSavedItems] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedItem, setSelectedItem] = useState<any>(null); // For modal
+    const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
     useEffect(() => {
         const fetchSaved = async () => {
@@ -265,7 +266,7 @@ export default function SavedItemsPage() {
                                     <div className="text-center py-12 bg-white/5 rounded-lg border border-white/5">
                                         <FileText className="h-12 w-12 text-gray-600 mx-auto mb-4" />
                                         <h3 className="text-lg font-medium text-white mb-2">Read Full Article</h3>
-                                        <p className="text-gray-400 mb-6 max-w-sm mx-auto">This article's content is not fully cached. Please open the full reader view.</p>
+                                        <p className="text-gray-400 mb-6 max-w-sm mx-auto">This article&apos;s content is not fully cached. Please open the full reader view.</p>
                                         <Link href={`/dashboard/articles`}>
                                             <Button className="bg-orange-600 hover:bg-orange-700 text-white">
                                                 Open Article Reader <ArrowRight className="ml-2 h-4 w-4" />

@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Plus, Pencil, Trash2, ChevronLeft, ChevronRight, RefreshCw, ArrowLeft } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import Link from "next/link";
+
 
 interface Column {
     name: string;
@@ -40,14 +42,7 @@ export default function GenericResourcePage() {
     const [formData, setFormData] = useState<any>({});
     const [isSaving, setIsSaving] = useState(false);
 
-    useEffect(() => {
-        if (resource) {
-            fetchSchema();
-            fetchData();
-        }
-    }, [resource, page]);
-
-    const fetchSchema = async () => {
+    const fetchSchema = useCallback(async () => {
         try {
             const res = await api.get(`/admin/generic/${resource}/schema`);
             setColumns(res.data.columns);
@@ -55,9 +50,9 @@ export default function GenericResourcePage() {
             toast.error("Failed to load schema");
             console.error(error);
         }
-    };
+    }, [resource]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
             const skip = (page - 1) * limit;
@@ -70,7 +65,14 @@ export default function GenericResourcePage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [resource, page]);
+
+    useEffect(() => {
+        if (resource) {
+            fetchSchema();
+            fetchData();
+        }
+    }, [resource, page, fetchSchema, fetchData]);
 
     const handleCreate = () => {
         setEditingItem(null);
@@ -89,7 +91,7 @@ export default function GenericResourcePage() {
         try {
             const date = new Date(dateString);
             return date.toISOString().slice(0, 16);
-        } catch (e) { return ""; }
+        } catch { return ""; }
     };
 
     const handleEdit = (item: any) => {
@@ -113,8 +115,9 @@ export default function GenericResourcePage() {
             await api.delete(`/admin/generic/${resource}/${id}`);
             toast.success("Record deleted");
             fetchData();
-        } catch (error: any) {
-            toast.error("Failed to delete record", { description: error.response?.data?.detail });
+        } catch (error) {
+            const err = error as { response?: { data?: { detail?: string } } };
+            toast.error("Failed to delete record", { description: err.response?.data?.detail });
         }
     };
 
@@ -161,14 +164,15 @@ export default function GenericResourcePage() {
 
             setIsDialogOpen(false);
             fetchData();
-        } catch (error: any) {
-            toast.error("Failed to save", { description: error.response?.data?.detail });
+        } catch (error) {
+            const err = error as { response?: { data?: { detail?: string } } };
+            toast.error("Failed to save", { description: err.response?.data?.detail });
         } finally {
             setIsSaving(false);
         }
     };
 
-    const handleInputChange = (colName: string, value: any) => {
+    const handleInputChange = (colName: string, value: unknown) => {
         setFormData((prev: any) => ({ ...prev, [colName]: value }));
     };
 

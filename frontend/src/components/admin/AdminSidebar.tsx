@@ -37,7 +37,7 @@ export default function AdminSidebar() {
                 const res = await api.get("/users/me");
                 // Extract roles from complex object or simple list
                 // UserOut schema has roles: List[UserRoleOut] -> role: RoleOut -> name
-                const roles = res.data.roles?.map((r: any) => r.role?.name || r.name) || [];
+                const roles = res.data.roles?.map((r: any) => (r.role as any)?.name || r.name) || [];
                 setUserRoles(roles);
             } catch (error) {
                 console.error("Failed to fetch user roles", error);

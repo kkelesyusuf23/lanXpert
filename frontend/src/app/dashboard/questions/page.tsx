@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { MessageCircle, Plus, Search, ThumbsUp, MessageSquare, MoreHorizontal, Globe, Loader2, Bookmark } from "lucide-react";
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, useCallback } from "react";
+import { MessageCircle, Plus, Search, ThumbsUp, MessageSquare, Globe, Loader2, Bookmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Dialog,
     DialogContent,
@@ -40,13 +42,13 @@ export default function QuestionsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [activeTab, setActiveTab] = useState("all");
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentUser, setCurrentUser] = useState<any | null>(null);
     const [selectedQuestion, setSelectedQuestion] = useState<any | null>(null);
     const [isReplying, setIsReplying] = useState(false);
     const [replyText, setReplyText] = useState("");
     const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
-    const toggleSave = async (question: any, e?: any) => {
+    const toggleSave = async (question: any, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         try {
             // Optimistic update
@@ -87,8 +89,8 @@ export default function QuestionsPage() {
             if (res.data.status === 'success') {
                 // Update local state
                 if (selectedQuestion) {
-                    const updatedAnswers = selectedQuestion.answers.map((a: any) =>
-                        a.id === answer.id ? { ...a, helpful_count: (a.helpful_count || 0) + 1 } : a
+                    const updatedAnswers = (selectedQuestion.answers as any[]).map((a: any) =>
+                        a.id === answer.id ? { ...a, helpful_count: ((a.helpful_count as number) || 0) + 1 } : a
                     );
                     setSelectedQuestion({ ...selectedQuestion, answers: updatedAnswers });
                 }
@@ -145,40 +147,28 @@ export default function QuestionsPage() {
     const watchedSourceLang = watch("source_lang");
     const watchedTargetLang = watch("target_lang");
 
-    const fetchUser = async () => {
+    const fetchUser = useCallback(async () => {
         try {
             const res = await api.get("/users/me");
             setCurrentUser(res.data);
             setValue("source_lang", res.data.native_language_id);
             setValue("target_lang", res.data.target_language_id);
         } catch (e) { console.error(e) }
-    };
+    }, [setValue]);
 
-    const fetchQuestions = async () => {
+    const fetchQuestions = useCallback(async () => {
         setIsLoading(true);
         try {
-            let url = "/questions";
+            const url = "/questions";
             const params = new URLSearchParams();
 
             if (activeTab === "my_questions" && currentUser) {
-                params.append("user_id", currentUser.id);
+                params.append("user_id", currentUser.id as string);
             } else if (activeTab === "unanswered") {
                 params.append("unanswered", "true");
             } else if (activeTab === "for_me" && currentUser) {
-                // If I'm an expert in my native language, I want to see questions asking for my native language
-                // OR questions about my target language? 
-                // User said: "bana sorulan diye bir alan olsun ve orada da hedef dile göre kullanıcılara görünmeli."
-                // "Bana sorulan" implies I can answer. So I can answer questions where TargetLang = My NativeLang
-                // Or questions where SourceLang = My NativeLang?
-                // Usually "For Me" means questions I can answer.
-                // If I am English native learning Turkish.
-                // A Turk asks EN->TR (Target TR). I can't help much?
-                // A Turk asks TR->EN (Question in TR, wants EN answer). I can help! (Target EN).
-                // So show me questions where target_language_id = My Native Language.
-                // AND potentially where target_language_id = My Target Language (to learn from others answers)?
-                // Let's stick to "target_lang = my_native_lang" (I am the expert) as priority.
                 if (currentUser.native_language_id) {
-                    params.append("target_lang", currentUser.native_language_id);
+                    params.append("target_lang", currentUser.native_language_id as string);
                 }
             }
 
@@ -189,22 +179,22 @@ export default function QuestionsPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [activeTab, currentUser]);
 
     useEffect(() => {
         fetchUser();
-    }, []);
+    }, [fetchUser]);
 
     useEffect(() => {
         if (currentUser || activeTab === "all") {
             fetchQuestions();
         }
-    }, [activeTab, currentUser]);
+    }, [activeTab, currentUser, fetchQuestions]);
 
     const [isEditing, setIsEditing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: Record<string, string>) => {
         try {
             if (isEditing && editingId) {
                 await api.put(`/questions/${editingId}`, {
@@ -232,8 +222,9 @@ export default function QuestionsPage() {
             });
             setIsEditing(false);
             setEditingId(null);
-        } catch (error: any) { // Type as any to access response
-            if (error.response && error.response.status === 403) {
+        } catch (error) {
+            const err = error as { response?: { status?: number; data?: { detail?: string } } };
+            if (err.response && err.response.status === 403) {
                 toast.warning("Daily Limit Reached", {
                     description: "You have reached your daily question limit. Upgrade to Pro for unlimited access.",
                     action: {
@@ -248,23 +239,24 @@ export default function QuestionsPage() {
             } else {
                 console.error("Failed to save question:", error);
                 toast.error("Failed create question", {
-                    description: error.response?.data?.detail || "Please check your input and try again."
+                    description: err.response?.data?.detail || "Please check your input and try again."
                 });
             }
         }
     };
 
-    const handleMessageUser = async (userId: string, e: any) => {
+    const handleMessageUser = async (userId: string, e: React.MouseEvent) => {
         e.stopPropagation();
         try {
             const res = await api.post("/chats/direct", { target_user_id: userId });
             // Using window.location to force full reload if needed, but router.push is better for SPA
             router.push(`/dashboard/chat?chatId=${res.data.id}`);
-        } catch (error: any) {
+        } catch (error) {
+            const msgErr = error as { response?: { status?: number; data?: { detail?: string } } };
             console.error(error);
-            if (error.response?.status === 403) {
+            if (msgErr.response?.status === 403) {
                 toast.warning("Messaging Restricted", {
-                    description: error.response.data.detail || "Upgrade to Enterprise to message users directly.",
+                    description: msgErr.response.data?.detail || "Upgrade to Enterprise to message users directly.",
                     action: { label: "Upgrade", onClick: () => router.push("/pricing") }
                 });
             } else {

@@ -9,14 +9,6 @@ router = APIRouter()
 @router.post("/token", response_model=schemas.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(dependencies.get_db)):
     user = crud.get_user_by_username(db, username=form_data.username)
-    print(f"DEBUG: Login attempt for '{form_data.username}'")
-    if user:
-        print(f"DEBUG: User found. Hash: {user.password_hash}")
-        verify_result = auth.verify_password(form_data.password, user.password_hash)
-        print(f"DEBUG: Password verification result: {verify_result}")
-    else:
-        print("DEBUG: User not found")
-
     if not user or not auth.verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

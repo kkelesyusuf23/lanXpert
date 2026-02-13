@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -51,7 +53,7 @@ export default function VerifyEmailPage() {
                     </div>
                     <CardTitle className="text-2xl mb-2">Verify your email</CardTitle>
                     <CardDescription className="text-gray-400">
-                        We've sent a verification link to <span className="text-white font-medium">{email}</span>.
+                        We&apos;ve sent a verification link to <span className="text-white font-medium">{email}</span>.
                         Please check your inbox to continue.
                     </CardDescription>
                 </CardHeader>

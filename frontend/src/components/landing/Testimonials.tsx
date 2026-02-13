@@ -59,7 +59,7 @@ export default function Testimonials() {
                         Loved by learners <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">worldwide.</span>
                     </motion.h2>
                     <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                        Don't just take our word for it. Here's what our community has to say about their journey to fluency.
+                        Don&apos;t just take our word for it. Here&apos;s what our community has to say about their journey to fluency.
                     </p>
                 </div>
 
@@ -84,7 +84,7 @@ export default function Testimonials() {
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-gray-300 leading-relaxed italic">"{t.content}"</p>
+                                    <p className="text-gray-300 leading-relaxed italic">&quot;{t.content}&quot;</p>
                                 </CardContent>
                             </Card>
                         </motion.div>

@@ -68,7 +68,7 @@ export default function FAQ() {
                         Frequently Asked Questions
                     </motion.h2>
                     <p className="text-gray-400 text-lg">
-                        Have a question? We're here to help.
+                        Have a question? We&apos;re here to help.
                     </p>
                 </div>
 

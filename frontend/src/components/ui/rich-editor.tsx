@@ -11,11 +11,7 @@ import {
     Underline as UnderlineIcon,
     List,
     ListOrdered,
-    Link as LinkIcon,
     Quote,
-    Undo,
-    Redo,
-    Code
 } from 'lucide-react'
 import { Button } from "@/components/ui/button" // Use Button instead of Toggle
 

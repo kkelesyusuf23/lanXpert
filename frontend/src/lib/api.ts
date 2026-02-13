@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create Axios instance
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000/api/v1', // Should be env var in production
+    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1',
     headers: {
         'Content-Type': 'application/json',
     },

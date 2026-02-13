@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookOpen, Brain, Globe, MessageCircle, Star, TrendingUp, Users, Zap } from "lucide-react";
+import { BookOpen, Globe, Star, TrendingUp, Users } from "lucide-react";
 import { ReactNode } from "react";
 
 const features = [

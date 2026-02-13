@@ -10,8 +10,12 @@ sys.path.append(os.path.join(os.getcwd(), 'backend'))
 from app import models
 from app.database import Base
 
-# Database URL
-DATABASE_URL = "postgresql://postgres.oytdebklocpsuncaqkkg:6sHFSHFpeIPZg9tX@aws-1-eu-west-1.pooler.supabase.com:6543/postgres"
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.getcwd(), '.env'))
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable is required")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

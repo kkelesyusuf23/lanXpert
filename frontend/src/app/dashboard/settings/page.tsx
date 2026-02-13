@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { User, Bell, Monitor, Globe, Sun, Moon, Loader2 } from "lucide-react";
+export const dynamic = "force-dynamic";
+
+import React, { useState, useEffect } from "react";
+import { User, Bell, Monitor, Sun, Moon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +51,7 @@ export default function SettingsPage() {
                 native_language_id: res.data.native_language_id || "",
                 target_language_id: res.data.target_language_id || ""
             });
-        } catch (e) {
+        } catch {
             toast.error("Failed to load user profile");
         } finally {
             setIsLoading(false);
@@ -76,8 +78,9 @@ export default function SettingsPage() {
             // Assuming PUT /users/me updates user
             await api.put("/users/me", payload);
             toast.success("Profile updated successfully");
-        } catch (e: any) {
-            toast.error("Failed to update profile", { description: e.response?.data?.detail });
+        } catch (e) {
+            const err = e as { response?: { data?: { detail?: string } } };
+            toast.error("Failed to update profile", { description: err.response?.data?.detail });
         } finally {
             setIsSaving(false);
         }
@@ -241,7 +244,7 @@ export default function SettingsPage() {
     );
 }
 
-function SaveIcon(props: any) {
+function SaveIcon(props: React.SVGProps<SVGSVGElement>) {
     return (
         <svg
             {...props}

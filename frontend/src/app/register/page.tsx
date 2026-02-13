@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -19,7 +21,7 @@ export default function RegisterPage() {
 
     const password = watch("password");
 
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: Record<string, string>) => {
         setIsLoading(true);
         setError("");
         try {
@@ -46,9 +48,10 @@ export default function RegisterPage() {
 
             router.push("/onboarding");
 
-        } catch (err: any) {
-            if (err.response && err.response.data && err.response.data.detail) {
-                setError(err.response.data.detail);
+        } catch (err) {
+            const regErr = err as { response?: { data?: { detail?: string } } };
+            if (regErr.response && regErr.response.data && regErr.response.data.detail) {
+                setError(regErr.response.data.detail);
             } else {
                 setError("Registration failed. Please try again.");
             }

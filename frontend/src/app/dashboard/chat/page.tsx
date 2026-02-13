@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+export const dynamic = "force-dynamic";
+
+import { useEffect, useState, useRef, useCallback } from "react";
 import { MessageSquare, Search, MoreVertical, Send, UserMinus, Flag, Loader2, Sparkles, User, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card"; // using div for layout mostly
 import { ScrollArea } from "@/components/ui/scroll-area";
 import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
@@ -27,7 +28,7 @@ export default function ChatPage() {
     const [selectedChat, setSelectedChat] = useState<any | null>(null);
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState("");
-    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentUser, setCurrentUser] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [isSearchingRandom, setIsSearchingRandom] = useState(false);
@@ -38,15 +39,27 @@ export default function ChatPage() {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Fetch User & Chats on Load
+    const fetchChats = useCallback(async () => {
+        try {
+            const res = await api.get("/chats");
+            setChats(res.data);
+
+            if (initChatId && res.data.length > 0) {
+                const target = res.data.find((c: any) => c.id === initChatId);
+                if (target) setSelectedChat(target);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }, [initChatId]);
+
     useEffect(() => {
         const init = async () => {
             try {
                 const userRes = await api.get("/users/me");
                 setCurrentUser(userRes.data);
 
-                // Check Plan
                 if (!userRes.data.plan_id) {
-                    // Free User - Show Upgrade Screen logic handled in render
                 } else {
                     fetchChats();
                     chatPollingInterval.current = setInterval(fetchChats, 5000);
@@ -63,9 +76,8 @@ export default function ChatPage() {
             if (chatPollingInterval.current) clearInterval(chatPollingInterval.current);
             if (msgPollingInterval.current) clearInterval(msgPollingInterval.current);
         };
-    }, []);
+    }, [fetchChats]);
 
-    // Poll messages when chat selected
     useEffect(() => {
         if (selectedChat) {
             fetchMessages(selectedChat.id);
@@ -76,26 +88,11 @@ export default function ChatPage() {
         };
     }, [selectedChat]);
 
-    // Scroll to bottom when messages change
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages]);
-
-    const fetchChats = async () => {
-        try {
-            const res = await api.get("/chats");
-            setChats(res.data);
-
-            if (initChatId && res.data.length > 0) {
-                const target = res.data.find((c: any) => c.id === initChatId);
-                if (target) setSelectedChat(target);
-            }
-        } catch (e) {
-            console.error(e);
-        }
-    };
 
     const fetchMessages = async (chatId: string) => {
         try {
@@ -119,9 +116,9 @@ export default function ChatPage() {
         try {
             const res = await api.post(`/chats/${selectedChat.id}/messages`, { content: text });
             setMessages(prev => [...prev, res.data]);
-        } catch (e) {
+        } catch {
             toast.error("Failed to send message");
-            setInputText(text); // Restore
+            setInputText(text);
         } finally {
             setIsSending(false);
         }
@@ -139,8 +136,9 @@ export default function ChatPage() {
                 setSelectedChat(chat);
             }
             fetchChats();
-        } catch (e: any) {
-            toast.error("Failed to start random chat", { description: e.response?.data?.detail });
+        } catch (e) {
+            const err = e as { response?: { data?: { detail?: string } } };
+            toast.error("Failed to start random chat", { description: err.response?.data?.detail });
         } finally {
             setIsSearchingRandom(false);
         }
@@ -153,7 +151,7 @@ export default function ChatPage() {
             toast.success("User blocked");
             setSelectedChat(null);
             fetchChats();
-        } catch (e) { toast.error("Failed to block"); }
+        } catch { toast.error("Failed to block"); }
     };
 
     const handleReport = async (userId: string) => {
@@ -162,7 +160,7 @@ export default function ChatPage() {
         try {
             await api.post("/chats/report", { user_id: userId, reason });
             toast.success("User reported. Thank you for keeping the community safe.");
-        } catch (e) { toast.error("Failed to report"); }
+        } catch { toast.error("Failed to report"); }
     };
 
     // New Delete Logic
@@ -177,7 +175,7 @@ export default function ChatPage() {
                 setSelectedChat(null);
             }
             toast.success("Chat deleted");
-        } catch (e) {
+        } catch {
             toast.error("Failed to delete chat");
         }
     };
@@ -185,7 +183,7 @@ export default function ChatPage() {
     // Helper to get other participant
     const getOtherParticipant = (chat: any) => {
         if (!chat || !currentUser) return null;
-        return chat.participants.find((p: any) => p.user.id !== currentUser.id)?.user;
+        return (chat.participants as any[])?.find((p: any) => (p.user as any)?.id !== currentUser.id)?.user as any | undefined;
     };
 
     if (isLoading) return <div className="flex h-screen items-center justify-center bg-black text-white"><Loader2 className="animate-spin" /></div>;
@@ -288,7 +286,7 @@ export default function ChatPage() {
                                                 <DropdownMenuContent align="end" className="bg-zinc-900 border-white/10">
                                                     <DropdownMenuItem
                                                         className="text-red-400 hover:text-red-300 hover:bg-white/5 cursor-pointer"
-                                                        onClick={(e) => handleDeleteChat(chat.id, e as any)}
+                                                        onClick={(e) => handleDeleteChat(chat.id, e as unknown as React.MouseEvent)}
                                                     >
                                                         <Trash2 className="w-4 h-4 mr-2" />
                                                         Delete Chat
@@ -344,7 +342,7 @@ export default function ChatPage() {
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         className="text-red-500 hover:text-red-400 hover:bg-white/5 cursor-pointer border-t border-white/10 mt-1 pt-1"
-                                        onClick={(e) => handleDeleteChat(selectedChat.id, e as any)}
+                                        onClick={(e) => handleDeleteChat(selectedChat.id, e as unknown as React.MouseEvent)}
                                     >
                                         <Trash2 className="w-4 h-4 mr-2" />
                                         Delete Chat

@@ -4,10 +4,10 @@ from .routers import auth, users, features, stats, admin, chat
 
 app = FastAPI(title="LanXpert API")
 
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+import os
+
+default_origins = "http://localhost:3000,http://127.0.0.1:3000"
+origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", default_origins).split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,

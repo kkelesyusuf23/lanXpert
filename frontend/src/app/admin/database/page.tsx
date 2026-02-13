@@ -1,11 +1,13 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import {
     Users, Shield, Layout, Globe, BookOpen, MessageCircle,
     FileText, MessageSquare, Bell, Settings, Database
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const resources = [

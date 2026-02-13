@@ -1,9 +1,10 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
-import { Search, Trash2, ExternalLink } from "lucide-react";
+import { Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MapPin } from "lucide-react"; // Dummy icon
 import {
     Table,
     TableBody,
@@ -17,12 +18,11 @@ import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
 import { LANGUAGES } from "@/lib/constants";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 
 export default function ArticlesAdminPage() {
     const [articles, setArticles] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const router = useRouter();
 
     const fetchArticles = async () => {
         setIsLoading(true);
@@ -85,7 +85,7 @@ export default function ArticlesAdminPage() {
                             </TableRow>
                         ) : (
                             articles.map((a) => (
-                                <TableRow key={a.id} className="border-white/10 hover:bg-white/5 transition-colors">
+                                <TableRow key={a.id as string} className="border-white/10 hover:bg-white/5 transition-colors">
                                     <TableCell>
                                         <Badge variant={a.is_published ? "default" : "secondary"} className={a.is_published ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"}>
                                             {a.is_published ? 'Published' : 'Draft'}

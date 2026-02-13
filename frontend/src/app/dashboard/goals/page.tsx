@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +10,8 @@ import { Target, Flame, CheckCircle2, MessageSquare, BookOpen, PenTool } from "l
 import api from "@/lib/api";
 
 export default function GoalsPage() {
-    const [goals, setGoals] = useState<any>(null);
-    const [stats, setStats] = useState<any>(null);
+    const [goals, setGoals] = useState<any | null>(null);
+    const [stats, setStats] = useState<any | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

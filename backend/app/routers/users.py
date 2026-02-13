@@ -80,7 +80,9 @@ async def send_verification_email(
     
     # 3. Simulate Sending Email (In production, use SMTP)
     # Returning the token here for development purposes so the frontend can use it directly
-    verification_link = f"http://localhost:3000/verify-email/confirm?token={token}"
+    import os
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    verification_link = f"{frontend_url}/verify-email/confirm?token={token}"
     print(f"----- VERIFICATION EMAIL SENT TO {current_user.email} -----")
     print(f"Link: {verification_link}")
     print("-----------------------------------------------------------")

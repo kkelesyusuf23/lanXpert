@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, Filter, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect, useCallback } from "react";
+import { Plus, Search, Edit2, Trash2, ChevronLeft, ChevronRight, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,7 +42,7 @@ export default function WordsAdminPage() {
 
     const { register, handleSubmit, reset, setValue } = useForm();
 
-    const fetchWords = async () => {
+    const fetchWords = useCallback(async () => {
         setIsLoading(true);
         try {
             const params = new URLSearchParams();
@@ -58,7 +60,7 @@ export default function WordsAdminPage() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [search, page, levelFilter, typeFilter]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -67,11 +69,11 @@ export default function WordsAdminPage() {
             else fetchWords();
         }, 300);
         return () => clearTimeout(timer);
-    }, [search, levelFilter, typeFilter]);
+    }, [search, levelFilter, typeFilter, fetchWords, page]);
 
     useEffect(() => {
         fetchWords();
-    }, [page]);
+    }, [page, fetchWords]);
 
     const onSubmit = async (data: any) => {
         try {

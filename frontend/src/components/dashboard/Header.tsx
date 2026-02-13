@@ -1,5 +1,5 @@
 
-import { Bell, Search, User, Check, X } from "lucide-react";
+import { Bell, Search } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import { formatDistanceToNow } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-
 import { useUser } from "@/contexts/UserContext";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +26,7 @@ export default function Header() {
             const res = await api.get("/notifications");
             setNotifications(res.data);
             setUnreadCount(res.data.filter((n: any) => !n.is_read).length);
-        } catch (error) {
+        } catch {
             console.error("Failed to fetch notifications");
         }
     };
