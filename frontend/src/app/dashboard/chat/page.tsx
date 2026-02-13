@@ -1,8 +1,8 @@
 "use client";
 
-export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { MessageSquare, Search, MoreVertical, Send, UserMinus, Flag, Loader2, Sparkles, User, Lock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function ChatPage() {
+function ChatContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const initChatId = searchParams.get("chatId");
@@ -427,5 +427,13 @@ export default function ChatPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={<div className="flex h-full w-full items-center justify-center text-white"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+            <ChatContent />
+        </Suspense>
     );
 }
